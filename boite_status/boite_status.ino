@@ -19,22 +19,24 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
+#include <SoftPWM.h>
 
 /* PINOUT */
 /* input */
-int switchButtonPin = 2;      /* bouton du millieu  */
-int RightLeverRightPin = 1;   /* levier de droite position droite */
-int RightLeverLeftPin = 1; 
-int LeftLeverRightPin = 1;   /* levier de gauche  position droite*/
-int LeftLeverLeftPin = 1;
+int buttons = 6;
+// int switchButtonPin = 2;      /* bouton du millieu  -  ( pinD2 'IRQ' )   */
+// int RightLeverRightPin = 5;   /* levier de droite position droite - ( pinD5 'MOSI' ) */
+// int RightLeverLeftPin = 6;    /* (pinD6 - 'MISO' )  */
+// int LeftLeverRightPin = 7;    /* levier de gauche  position droite - ( pinD7 = ' SCK' ) */
+// int LeftLeverLeftPin = 8;     /* ( pinD8 'CSn' )  */
 
 /* output  */
-int topLedRedPin = 1;
-int topLedBluePin = 1;
-int topLedGreenPin = 1;
-int lowLedPin = 1;
-int amperemeterPin = 0;
-int voltmeterPin = 1;
+int topLedRedPin = 14;    /*  MOSI  */
+// int topLedBluePin = 1;   /*  MISO  */
+// int topLedGreenPin = 2;  /*  SCK   */
+// int lowLedPin = 3;       /*  CSn   */
+// int amperemeterPin = 4;  /*  IRQ   */
+// int voltmeterPin = 5;
 
 int amperemeter = 0;   /* Ampermeter ooutput  */
 
@@ -63,24 +65,32 @@ void setup() {
   Serial.print("server is at ");
   Serial.println(Ethernet.localIP());
   
-  pinMode(switchButtonPin, INPUT);
-  pinMode(RightLeverRightPin, INPUT);
-  pinMode(RightLeverLeftPin, INPUT);
-  pinMode(LeftLeverRightPin, INPUT);
-  pinMode(LeftLeverLeftPin, INPUT);
+  pinMode(buttons, INPUT);
+//  pinMode(switchButtonPin, INPUT);
+//  pinMode(RightLeverRightPin, INPUT);
+//  pinMode(RightLeverLeftPin, INPUT);
+//  pinMode(LeftLeverRightPin, INPUT);
+//  pinMode(LeftLeverLeftPin, INPUT);
 
-  pinMode(topLedRedPin, OUTPUT);
-  digitalWrite(topLedRedPin, LOW);
-  pinMode(topLedBluePin, OUTPUT);
-  digitalWrite(topLedBluePin, LOW);
-  pinMode(topLedGreenPin, OUTPUT);
-  digitalWrite(topLedGreenPin, LOW);
-  pinMode(lowLedPin, OUTPUT);
-  digitalWrite(lowLedPin, LOW);
-  pinMode(amperemeterPin, OUTPUT);
-  digitalWrite(amperemeterPin, LOW);
-  pinMode(voltmeterPin, OUTPUT);
-  digitalWrite(voltmeterPin, LOW);
+  SoftPWMBegin();
+  
+  SoftPWMSet(14, 0);
+
+  SoftPWMSetFadeTime(14, 10000, 10000);
+//  pinMode(topLedRedPin, OUTPUT);
+//  analogWrite(topLedRedPin, 100);
+
+//  pinMode(topLedBluePin, OUTPUT);
+//  digitalWrite(topLedBluePin, LOW);
+//  pinMode(topLedGreenPin, OUTPUT);
+//  digitalWrite(topLedGreenPin, LOW);
+//  pinMode(lowLedPin, OUTPUT);
+//  digitalWrite(lowLedPin, LOW);
+//  pinMode(amperemeterPin, OUTPUT);
+//  digitalWrite(amperemeterPin, LOW);
+//  pinMode(voltmeterPin, OUTPUT);
+//  digitalWrite(voltmeterPin, LOW);
+
 }
 
 
@@ -88,25 +98,32 @@ void loop() {
 
   int RightLeverActivatedDuration = millis() / 1000 ;
   
-  if(RightLeverRightPin == HIGH){
-    int increments = 10;
-    if( amperemeter <= 1023 - increments ){
-      amperemeter += increments;
-    }else{
-      amperemeter = 1023;
-    }
-  }
-  if(LeftLeverRightPin == HIGH){
-    int increments = 10;
-    if( amperemeter <= 1023 - increments ){
-      amperemeter += increments;
-    }else{
-      amperemeter = 1023;
-    }
-  }
-  
+//  if(RightLeverRightPin == HIGH){
+//    int increments = 10;
+//    if( amperemeter <= 1023 - increments ){
+//      amperemeter += increments;
+//    }else{
+//      amperemeter = 1023;
+//    }
+//  }
+//  if(LeftLeverRightPin == HIGH){
+//    int increments = 10;
+//    if( amperemeter <= 1023 - increments ){
+//      amperemeter += increments;
+//    }else{
+//      amperemeter = 1023;
+//    }
+//  }
+
   listenClient(RightLeverActivatedDuration);
-  
+
+  int i;
+  for( i = 0; i <255; i++)
+  {
+    SoftPWMSet(14, i);
+    SoftPWMSet(15, 255-i);
+    delay(30);
+  }
   
 }
 
@@ -136,7 +153,7 @@ if (client) {
         client.println("<!DOCTYPE HTML>");
         client.println("<html>");
         // output the value of each analog input pin
-        for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
+        for (int analogChannel = 2; analogChannel < 6; analogChannel++) {
           int sensorReading = analogRead(analogChannel);
           client.print("analog input ");
           client.print(analogChannel);

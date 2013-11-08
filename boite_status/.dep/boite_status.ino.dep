@@ -1,0 +1,82 @@
+boite_status.o: boite_status.ino \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Arduino.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/binary.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/WCharacter.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/WString.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/HardwareSerial.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Stream.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Print.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Printable.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/new.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/variants/eightanaloginputs/pins_arduino.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/variants/eightanaloginputs/../standard/pins_arduino.h \
+ /home/seba/projects/arduino-1.0.5//libraries/SPI/SPI.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Arduino.h \
+ /home/seba/projects/arduino-1.0.5//libraries/Ethernet/Ethernet.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/IPAddress.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Printable.h \
+ /home/seba/projects/arduino-1.0.5//libraries/Ethernet/EthernetClient.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Print.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Client.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/IPAddress.h \
+ /home/seba/projects/arduino-1.0.5//libraries/Ethernet/EthernetServer.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Server.h \
+ /home/seba/projects/arduino-1.0.5//libraries/Ethernet/Dhcp.h \
+ /home/seba/projects/arduino-1.0.5//libraries/Ethernet/EthernetUdp.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Udp.h \
+ /home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Stream.h \
+ /home/seba/projects/arduino-1.0.5//libraries/SoftPWM/SoftPWM.h
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Arduino.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/binary.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/WCharacter.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/WString.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/HardwareSerial.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Stream.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Print.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Printable.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/new.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/variants/eightanaloginputs/pins_arduino.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/variants/eightanaloginputs/../standard/pins_arduino.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/SPI/SPI.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Arduino.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/Ethernet/Ethernet.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/IPAddress.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Printable.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/Ethernet/EthernetClient.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Print.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Client.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/IPAddress.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/Ethernet/EthernetServer.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Server.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/Ethernet/Dhcp.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/Ethernet/EthernetUdp.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Udp.h:
+
+/home/seba/projects/arduino-1.0.5//hardware/arduino/cores/arduino/Stream.h:
+
+/home/seba/projects/arduino-1.0.5//libraries/SoftPWM/SoftPWM.h:
