@@ -18,172 +18,77 @@
  */
 
 #include <SPI.h>
-#include <Ethernet.h>
-#include <SoftPWM.h>
+#include <Button.h>
 
 /* PINOUT */
-/* input */
-int buttons = 6;
-// int switchButtonPin = 2;      /* bouton du millieu  -  ( pinD2 'IRQ' )   */
-// int RightLeverRightPin = 5;   /* levier de droite position droite - ( pinD5 'MOSI' ) */
-// int RightLeverLeftPin = 6;    /* (pinD6 - 'MISO' )  */
-// int LeftLeverRightPin = 7;    /* levier de gauche  position droite - ( pinD7 = ' SCK' ) */
-// int LeftLeverLeftPin = 8;     /* ( pinD8 'CSn' )  */
+/* Output pins are all PWM pins */
+#define galva1Pin 5
+#define galva2Pin 6
+#define ledPin 9
+#define redPin 10
+#define bluePin 11
+#define greenPin 13
 
-/* output  */
-int topLedRedPin = 14;    /*  MOSI  */
-// int topLedBluePin = 1;   /*  MISO  */
-// int topLedGreenPin = 2;  /*  SCK   */
-// int lowLedPin = 3;       /*  CSn   */
-// int amperemeterPin = 4;  /*  IRQ   */
-// int voltmeterPin = 5;
+/* Input pins are digital pins */
+#define switchPin 2
+#define leverRRPin 4
+#define leverRLPin 7
+#define leverLRPin 8
+#define leverLLPin 12
 
-int amperemeter = 0;   /* Ampermeter ooutput  */
+/* les levier et switch utilisent la librairie Button.h  */
+Button cancelSwitch = Button(switchPin, PULLUP);
+Button leverRR = Button(leverRRPin, PULLUP);
+Button leverRL = Button(leverRLPin, PULLUP);
+Button leverLR = Button(leverLRPin, PULLUP);
+Button leverLL = Button(leverLLPin, PULLUP);
 
-void listenClient(int);
-
-// Enter a MAC address and IP address for your controller below.
-// The IP address will be dependent on your local network:
-byte mac[] = { 0xC7, 0xDD, 0x54, 0xFF, 0xF4, 0xD1 };   /*  mac address randomly generated (no sticker on the board)  */
-IPAddress ip(192,168,80,249);   /* fixed address - the device is named pannello.lan.posttenebraslab.ch */
-
-// Initialize the Ethernet server library
-// with the IP address and port you want to use 
-// (port 80 is default for HTTP):
-EthernetServer server(80);
+double stateGalva1 = 0;
+int stateGalva2 = 0;
+int stateLeverRR = 0;
+int stateLeverRL = 0;
+int stateLeverLR = 0;
+int stateLeverLL = 0;
+int timeLeverRR, actionTimeLeverRR;
 
 void setup() {
+
  // Open serial communications and wait for port to open:
   Serial.begin(115200);
-//   while (!Serial) {
-//    ; // wait for serial port to connect. Needed for Leonardo only
-//  }
+  while (!Serial); // wait for serial port to connect. Needed for Leonardo only
 
-  // start the Ethernet connection and the server:
-  Ethernet.begin(mac, ip);
-  server.begin();
-  Serial.print("server is at ");
-  Serial.println(Ethernet.localIP());
+  pinMode(switchPin, INPUT);
+  pinMode(leverRRPin, INPUT);
+  pinMode(leverRLPin, INPUT);
+  pinMode(leverLRPin, INPUT);
+  pinMode(leverLLPin, INPUT);
   
-  pinMode(buttons, INPUT);
-//  pinMode(switchButtonPin, INPUT);
-//  pinMode(RightLeverRightPin, INPUT);
-//  pinMode(RightLeverLeftPin, INPUT);
-//  pinMode(LeftLeverRightPin, INPUT);
-//  pinMode(LeftLeverLeftPin, INPUT);
-
-  SoftPWMBegin();
-  
-  SoftPWMSet(14, 0);
-
-  SoftPWMSetFadeTime(14, 10000, 10000);
-//  pinMode(topLedRedPin, OUTPUT);
-//  analogWrite(topLedRedPin, 100);
-
-//  pinMode(topLedBluePin, OUTPUT);
-//  digitalWrite(topLedBluePin, LOW);
-//  pinMode(topLedGreenPin, OUTPUT);
-//  digitalWrite(topLedGreenPin, LOW);
-//  pinMode(lowLedPin, OUTPUT);
-//  digitalWrite(lowLedPin, LOW);
-//  pinMode(amperemeterPin, OUTPUT);
-//  digitalWrite(amperemeterPin, LOW);
-//  pinMode(voltmeterPin, OUTPUT);
-//  digitalWrite(voltmeterPin, LOW);
+  pinMode(ledPin, OUTPUT);      /* LED sous la coupole rouge (elle est blanche) */
+  analogWrite(ledPin, LOW);
+  pinMode(redPin, OUTPUT);      /* LED rouge sous la coupole blanche */
+  analogWrite(redPin, LOW);
+  pinMode(bluePin, OUTPUT);     /* LED bleue sous la coupole blanche */
+  analogWrite(bluePin, LOW);
+  pinMode(greenPin, OUTPUT);    /* LED verte sous la coupole blanche */
+  analogWrite(greenPin, LOW);
 
 }
 
 
 void loop() {
 
-  int RightLeverActivatedDuration = millis() / 1000 ;
-  
-//  if(RightLeverRightPin == HIGH){
-//    int increments = 10;
-//    if( amperemeter <= 1023 - increments ){
-//      amperemeter += increments;
-//    }else{
-//      amperemeter = 1023;
-//    }
-//  }
-//  if(LeftLeverRightPin == HIGH){
-//    int increments = 10;
-//    if( amperemeter <= 1023 - increments ){
-//      amperemeter += increments;
-//    }else{
-//      amperemeter = 1023;
-//    }
-//  }
-
-  listenClient(RightLeverActivatedDuration);
-
-  int i;
-  for( i = 0; i <255; i++)
+  if( leverRR.uniquePress() )
   {
-    SoftPWMSet(14, i);
-    SoftPWMSet(15, 255-i);
-    delay(30);
+    actionTimeLeverRR = millis();
+    timeLeverRR = 0;
   }
-  
+  while( leverRR.isPressed() && stateGalva1 < 255 )
+  {
+    timeLeverRR += (millis() - actionTimeLeverRR)/5000;
+    stateGalva1 = map(timeLeverRR, 0, 1, 0, 255);
+    Serial.println( stateGalva1); 
+  }
+
 }
 
-/* On envoie au lient ce qu'on veut */
-void listenClient(int time){
 
-// listen for incoming clients
-EthernetClient client = server.available();
-if (client) {
-  Serial.println("new client");
-  // an http request ends with a blank line
-  boolean currentLineIsBlank = true;
-  while (client.connected()) {
-    if (client.available()) {
-      char c = client.read();
-      Serial.write(c);
-      // if you've gotten to the end of the line (received a newline
-      // character) and the line is blank, the http request has ended,
-      // so you can send a reply
-      if (c == '\n' && currentLineIsBlank) {
-        // send a standard http response header
-        client.println("HTTP/1.1 200 OK");
-        client.println("Content-Type: text/html");
-        client.println("Connection: close");  // the connection will be closed after completion of the response
-	  client.println("Refresh: 5");  // refresh the page automatically every 5 sec
-        client.println();
-        client.println("<!DOCTYPE HTML>");
-        client.println("<html>");
-        // output the value of each analog input pin
-        for (int analogChannel = 2; analogChannel < 6; analogChannel++) {
-          int sensorReading = analogRead(analogChannel);
-          client.print("analog input ");
-          client.print(analogChannel);
-          client.print(" is ");
-          client.print(sensorReading);
-          client.println("<br />");    
-        }
-        client.print("La valeur de amperemeter est : ");   
-        client.println(amperemeter);
-        client.print("Le temps d'execusion est de: ");   
-        client.println(time);
-
-        
-        client.println("</html>");
-        break;
-      }
-      if (c == '\n') {
-        // you're starting a new line
-        currentLineIsBlank = true;
-      } 
-      else if (c != '\r') {
-        // you've gotten a character on the current line
-        currentLineIsBlank = false;
-      }
-    }
-  }
-  // give the web browser time to receive the data
-  delay(1);
-  // close the connection:
-  client.stop();
-  Serial.println("client disonnected");
-  }
-}
