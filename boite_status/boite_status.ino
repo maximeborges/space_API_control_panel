@@ -22,26 +22,26 @@
 
 /* PINOUT */
 /* Output pins are all PWM pins */
-#define galva1Pin 5
-#define galva2Pin 6
-#define ledPin 9
-#define redPin 10
-#define bluePin 11
-#define greenPin 13
+#define GALV1 5
+#define GALV2 6
+#define LED1 9
+#define LEDR 10
+#define LEDB 11
+#define LEDG 13
 
 /* Input pins are digital pins */
-#define switchPin 2
-#define leverRRPin 4
-#define leverRLPin 7
-#define leverLRPin 8
-#define leverLLPin 12
+#define OnOff 2
+#define LEVRR 4
+#define LEVRL 7
+#define LEVLR 8
+#define LEVLL 12
 
 /* les levier et switch utilisent la librairie Button.h  */
-Button cancelSwitch = Button(switchPin, PULLUP);
-Button leverRR = Button(leverRRPin, PULLUP);
-Button leverRL = Button(leverRLPin, PULLUP);
-Button leverLR = Button(leverLRPin, PULLUP);
-Button leverLL = Button(leverLLPin, PULLUP);
+Button cancelSwitch = Button(OnOff, PULLUP);
+Button leverRR = Button(LEVRR, PULLUP);
+Button leverRL = Button(LEVRL, PULLUP);
+Button leverLR = Button(LEVLR, PULLUP);
+Button leverLL = Button(LEVLL, PULLUP);
 
 double stateGalva1 = 0;
 int stateGalva2 = 0;
@@ -57,20 +57,20 @@ void setup() {
   Serial.begin(115200);
   while (!Serial); // wait for serial port to connect. Needed for Leonardo only
 
-  pinMode(switchPin, INPUT);
-  pinMode(leverRRPin, INPUT);
-  pinMode(leverRLPin, INPUT);
-  pinMode(leverLRPin, INPUT);
-  pinMode(leverLLPin, INPUT);
+  pinMode(OnOff, INPUT);
+  pinMode(LEVRR, INPUT);
+  pinMode(LEVRL, INPUT);
+  pinMode(LEVLR, INPUT);
+  pinMode(LEVLL, INPUT);
   
-  pinMode(ledPin, OUTPUT);      /* LED sous la coupole rouge (elle est blanche) */
-  analogWrite(ledPin, LOW);
-  pinMode(redPin, OUTPUT);      /* LED rouge sous la coupole blanche */
-  analogWrite(redPin, LOW);
-  pinMode(bluePin, OUTPUT);     /* LED bleue sous la coupole blanche */
-  analogWrite(bluePin, LOW);
-  pinMode(greenPin, OUTPUT);    /* LED verte sous la coupole blanche */
-  analogWrite(greenPin, LOW);
+  pinMode(LED1, OUTPUT);      /* LED sous la coupole rouge (elle est blanche) */
+  analogWrite(LED1, LOW);
+  pinMode(LEDR, OUTPUT);      /* LED rouge sous la coupole blanche */
+  analogWrite(LEDR, LOW);
+  pinMode(LEDB, OUTPUT);     /* LED bleue sous la coupole blanche */
+  analogWrite(LEDB, LOW);
+  pinMode(LEDG, OUTPUT);    /* LED verte sous la coupole blanche */
+  analogWrite(LEDG, LOW);
 
 }
 
