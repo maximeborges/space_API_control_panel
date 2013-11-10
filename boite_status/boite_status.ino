@@ -18,7 +18,7 @@
  */
 
 #include <SPI.h>
-#include <Button.h>
+#include <Bounce.h>
 
 /* PINOUT */
 /* Output pins are all PWM pins */
@@ -36,20 +36,30 @@
 #define LEVLR 8
 #define LEVLL 12
 
-/* les levier et switch utilisent la librairie Button.h  */
-Button cancelSwitch = Button(OnOff, PULLUP);
-Button leverRR = Button(LEVRR, PULLUP);
-Button leverRL = Button(LEVRL, PULLUP);
-Button leverLR = Button(LEVLR, PULLUP);
-Button leverLL = Button(LEVLL, PULLUP);
+/* Const */
+#define STEP 20
 
-double stateGalva1 = 0;
-int stateGalva2 = 0;
-int stateLeverRR = 0;
-int stateLeverRL = 0;
-int stateLeverLR = 0;
-int stateLeverLL = 0;
-int timeLeverRR, actionTimeLeverRR;
+#define LED1On digitalWrite(LED1, HIGH)
+#define LED1Off diggitalWrite(LED1, LOW)
+
+/* les levier et switch utilisent la librairie Bounce.h  */
+Bounce cancel = Bounce(OnOff, 20);        /* debounce 20 ms  */
+Bounce levRR = Bounce(LEVRR, 20);
+Bounce levRL = Bounce(LEVRL, 20);
+Bounce levLR = Bounce(LEVLR, 20);
+Bounce levLL = Bounce(LEVLL, 20);
+
+int stateGalv1 = 0;
+int stateGalv2 = 0;
+int stateLevRR = 0;
+int stateLevRL = 0;
+int stateLevLR = 0;
+int stateLevLL = 0;
+
+long opentime = 0;
+long reftime = 0;
+int ledtime = 0;     /*  timer pour acceleration aiguille galva */
+
 
 void setup() {
 
@@ -67,27 +77,91 @@ void setup() {
   analogWrite(LED1, LOW);
   pinMode(LEDR, OUTPUT);      /* LED rouge sous la coupole blanche */
   analogWrite(LEDR, LOW);
-  pinMode(LEDB, OUTPUT);     /* LED bleue sous la coupole blanche */
+  pinMode(LEDB, OUTPUT);      /* LED bleue sous la coupole blanche */
   analogWrite(LEDB, LOW);
-  pinMode(LEDG, OUTPUT);    /* LED verte sous la coupole blanche */
+  pinMode(LEDG, OUTPUT);      /* LED verte sous la coupole blanche */
   analogWrite(LEDG, LOW);
 
 }
 
 
 void loop() {
+ 
+  /*   update debounce buttons  */ 
+  cancel.update();
+  levRR.update();
+  levRL.update();
+  levLR.update();
+  levLL.update();
 
-  if( leverRR.uniquePress() )
+  if( levRR.read() )
   {
-    actionTimeLeverRR = millis();
-    timeLeverRR = 0;
+    opentime += ( STEP * levRR.duration()/500 );  /* acceleration */
+    if( opentime > 540 )
+      opentime = 540;            /* max state  540min */
+    reftime = millis();
   }
-  while( leverRR.isPressed() && stateGalva1 < 255 )
+  if( levRL.read() )
   {
-    timeLeverRR += (millis() - actionTimeLeverRR)/5000;
-    stateGalva1 = map(timeLeverRR, 0, 1, 0, 255);
-    Serial.println( stateGalva1); 
+    opentime -= ( STEP * levRR.duration()/500 );  /* acceleration */
+    if( opentime < 0 )
+    {
+      opentime = 0;              /* min state */
+      LED1On;
+      delay(500);
+      LED1Off;
+      delay(500); 
   }
+
+  if( cancel.read() && ( cancel.duration() > 2000 ) )
+  {
+    stateGalv1 = 0;
+    stateGalv2 = 0;
+    opentime = 0;
+  }
+
+  stateGalv1 = map(opentime, 0, 540, 0, 255);                   /*  durée d'ouverture de 0 à 540 min <- stateGalv1(0,255)  */
+
+  /*  Une LED rouge clignotte lentement quand le local est fermé */
+  if( opentime == 0 && (millis()-ledtime)>5000 )
+  {
+    LED1On;
+    delay(500);
+    LED1Off;
+    ledtime = millis();       /*  remise à zero du compteur  */
+  }
+
+/****************************************************
+ *
+ * Temps 
+ *
+ ***************************************************/
+
+  /*  toute les minutes on decremente le temps */
+  if( (millis() - reftime) >= 60000 )
+  {  opentime--; }
+
+  /*  la dernière heure on passe du vert au rouge  */
+  if( opentime < 60 )
+  {
+    analogWrite(LEDR, map(60 - opentime, 0, 60, 0, 255) )   /* rouge augmente */
+    analogWrite(LEDG, map(opentime, 0, 60, 0, 255) )        /*  vert diminue */
+  }
+
+  /* quand plus d'une heure c'est vert */
+  if( openntime > 60 )
+  { analogWrite(LEDG, 255); }
+
+/****************************************************
+ *
+ * Affichage pour server et galva
+ *
+ ***************************************************/
+
+  Serial.print("Le local est ouvert pour : ");    /*  for the server  */
+  Serial.println( opentime );
+  analogWrite(GAL1, stateGalv1);
+  analogWrite(GAL2, stateGalv2);
 
 }
 
