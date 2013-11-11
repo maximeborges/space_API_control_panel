@@ -20,6 +20,9 @@
 #include <SPI.h>
 #include <Bounce.h>
 
+/* Founctions  */
+void update_buttons();
+
 /* PINOUT */
 /* Output pins are all PWM pins */
 #define GALV1 5
@@ -40,7 +43,13 @@
 #define STEP 20
 
 #define LED1On digitalWrite(LED1, HIGH)
-#define LED1Off diggitalWrite(LED1, LOW)
+#define LED1Off digitalWrite(LED1, LOW)
+#define LEDROn analogWrite(LEDG, 255) 
+#define LEDROff analogWrite(LEDG, 0) 
+#define LEDBOn analogWrite(LEDG, 255) 
+#define LEDBOff analogWrite(LEDG, 0) 
+#define LEDGOn analogWrite(LEDG, 255) 
+#define LEDGOff analogWrite(LEDG, 0) 
 
 /* les levier et switch utilisent la librairie Bounce.h  */
 Bounce cancel = Bounce(OnOff, 20);        /* debounce 20 ms  */
@@ -56,9 +65,9 @@ int stateLevRL = 0;
 int stateLevLR = 0;
 int stateLevLL = 0;
 
-long opentime = 0;
-long reftime = 0;
-int ledtime = 0;     /*  timer pour acceleration aiguille galva */
+unsigned long opentime = 0;
+unsigned long reftime = 0;
+unsigned long ledtime = 0;     /*  timer pour acceleration aiguille galva */
 
 
 void setup() {
@@ -74,43 +83,36 @@ void setup() {
   pinMode(LEVLL, INPUT);
   
   pinMode(LED1, OUTPUT);      /* LED sous la coupole rouge (elle est blanche) */
-  analogWrite(LED1, LOW);
+  LED1Off;
   pinMode(LEDR, OUTPUT);      /* LED rouge sous la coupole blanche */
-  analogWrite(LEDR, LOW);
+  LEDROff;
   pinMode(LEDB, OUTPUT);      /* LED bleue sous la coupole blanche */
-  analogWrite(LEDB, LOW);
+  LEDBOff;
   pinMode(LEDG, OUTPUT);      /* LED verte sous la coupole blanche */
-  analogWrite(LEDG, LOW);
+  LEDGOff;
 
 }
 
 
 void loop() {
  
-  /*   update debounce buttons  */ 
-  cancel.update();
-  levRR.update();
-  levRL.update();
-  levLR.update();
-  levLL.update();
+  update_buttons();
 
   if( levRR.read() )
   {
-    opentime += ( STEP * levRR.duration()/500 );  /* acceleration */
-    if( opentime > 540 )
-      opentime = 540;            /* max state  540min */
+    opentime = constrain( opentime + (STEP * levRR.duration()/500), 0 , 540 );  /* acceleration, valeur de 0 à 540 */
     reftime = millis();
   }
   if( levRL.read() )
   {
-    opentime -= ( STEP * levRR.duration()/500 );  /* acceleration */
-    if( opentime < 0 )
+    opentime = constrain( opentime - (STEP * levRR.duration()/500), 0 , 540 );  /* acceleration, valeur de 0 à 540 */
+    if( opentime == 0 )
     {
-      opentime = 0;              /* min state */
       LED1On;
-      delay(500);
+      delay(300);
       LED1Off;
       delay(500); 
+    }
   }
 
   if( cancel.read() && ( cancel.duration() > 2000 ) )
@@ -139,18 +141,22 @@ void loop() {
 
   /*  toute les minutes on decremente le temps */
   if( (millis() - reftime) >= 60000 )
-  {  opentime--; }
+  {
+    opentime--;
+    reftime = millis();
+  }
+  
 
   /*  la dernière heure on passe du vert au rouge  */
   if( opentime < 60 )
   {
-    analogWrite(LEDR, map(60 - opentime, 0, 60, 0, 255) )   /* rouge augmente */
-    analogWrite(LEDG, map(opentime, 0, 60, 0, 255) )        /*  vert diminue */
+    analogWrite(LEDR, map(60 - opentime, 0, 60, 0, 255) );   /* rouge augmente */
+    analogWrite(LEDG, map(opentime, 0, 60, 0, 255) );        /*  vert diminue */
   }
 
   /* quand plus d'une heure c'est vert */
-  if( openntime > 60 )
-  { analogWrite(LEDG, 255); }
+  if( opentime > 60 )
+  { LEDGOn; }
 
 /****************************************************
  *
@@ -160,9 +166,18 @@ void loop() {
 
   Serial.print("Le local est ouvert pour : ");    /*  for the server  */
   Serial.println( opentime );
-  analogWrite(GAL1, stateGalv1);
-  analogWrite(GAL2, stateGalv2);
+  analogWrite(GALV1, stateGalv1);
+  analogWrite(GALV2, stateGalv2);
 
 }
 
+void update_buttons() {
 
+  /*   update debounce buttons  */ 
+  cancel.update();
+  levRR.update();
+  levRL.update();
+  levLR.update();
+  levLL.update();
+
+}
