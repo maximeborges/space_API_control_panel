@@ -34,13 +34,13 @@ void update_buttons();
 
 /* Input pins are digital pins */
 #define OnOff 2
-#define LEVRR 4
-#define LEVRL 7
+#define LEVRR 7
+#define LEVRL 4
 #define LEVLR 8
 #define LEVLL 12
 
 /* Const */
-#define STEP 20
+#define STEP 2
 
 #define LED1On digitalWrite(LED1, HIGH)
 #define LED1Off digitalWrite(LED1, LOW)
@@ -65,7 +65,7 @@ int stateLevRL = 0;
 int stateLevLR = 0;
 int stateLevLL = 0;
 
-unsigned long opentime = 0;
+long opentime = 0;
 unsigned long reftime = 0;
 unsigned long ledtime = 0;     /*  timer pour acceleration aiguille galva */
 
@@ -97,15 +97,18 @@ void setup() {
 void loop() {
  
   update_buttons();
-
-  if( levRR.read() )
+  
+  if( !levRR.read() )
   {
-    opentime = constrain( opentime + (STEP * levRR.duration()/500), 0 , 540 );  /* acceleration, valeur de 0 à 540 */
+    opentime = constrain( opentime + STEP + STEP * (long)levRR.duration()/500, 0 , 540 );  /* acceleration, valeur de 0 à 540 */
     reftime = millis();
+    delay(35);
   }
-  if( levRL.read() )
+  else if( !levRL.read() )
   {
-    opentime = constrain( opentime - (STEP * levRR.duration()/500), 0 , 540 );  /* acceleration, valeur de 0 à 540 */
+    opentime = constrain( opentime - STEP -  STEP * (long)levRL.duration()/500, 0 , 540 );  /* acceleration, valeur de 0 à 540 */
+    delay(35);
+    /*
     if( opentime == 0 )
     {
       LED1On;
@@ -113,14 +116,15 @@ void loop() {
       LED1Off;
       delay(500); 
     }
+  */
   }
 
-  if( cancel.read() && ( cancel.duration() > 2000 ) )
+  /*if( cancel.read() && ( cancel.duration() > 2000 ) )
   {
     stateGalv1 = 0;
     stateGalv2 = 0;
     opentime = 0;
-  }
+  }*/
 
   stateGalv1 = map(opentime, 0, 540, 0, 255);                   /*  durée d'ouverture de 0 à 540 min <- stateGalv1(0,255)  */
 
@@ -140,10 +144,13 @@ void loop() {
  ***************************************************/
 
   /*  toute les minutes on decremente le temps */
-  if( (millis() - reftime) >= 60000 )
+  if( (millis() - reftime) >= 6000 ) // FIXME : change back to 60000
   {
     opentime--;
+    if(opentime < 0)
+      opentime = 0;
     reftime = millis();
+    Serial.println("timer decrement");
   }
   
 
