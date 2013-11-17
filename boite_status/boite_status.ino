@@ -29,8 +29,8 @@ void update_buttons();
 #define GALV2 6
 #define LED1 9
 #define LEDR 10
-#define LEDB 11
-#define LEDG 13
+#define LEDB 13
+#define LEDG 11
 
 /* Input pins are digital pins */
 #define OnOff 2
@@ -41,6 +41,11 @@ void update_buttons();
 
 /* Const */
 #define STEP 2
+#define MINUTE 60000
+#define GALV1RANGE 540
+#define GALV2RANGE 300
+#define BLINKPERIOD 3000
+#define BLINKOn 500
 
 #define LED1On digitalWrite(LED1, HIGH)
 #define LED1Off digitalWrite(LED1, LOW)
@@ -60,12 +65,10 @@ Bounce levLL = Bounce(LEVLL, 20);
 
 int stateGalv1 = 0;
 int stateGalv2 = 0;
-int stateLevRR = 0;
-int stateLevRL = 0;
-int stateLevLR = 0;
-int stateLevLL = 0;
 
 long opentime = 0;
+long galv2scale = 0;
+
 unsigned long reftime = 0;
 unsigned long ledtime = 0;     /*  timer pour acceleration aiguille galva */
 
@@ -98,43 +101,61 @@ void loop() {
  
   update_buttons();
   
+  /********************
+  * levier 1
+  *********************/
   if( !levRR.read() )
   {
-    opentime = constrain( opentime + STEP + STEP * (long)levRR.duration()/500, 0 , 540 );  /* acceleration, valeur de 0 à 540 */
+    opentime = constrain( opentime + STEP + STEP * (long)levRR.duration()/500, 0 , GALV1RANGE );  /* acceleration, valeur de 0 à GALV1RANGE */
     reftime = millis();
     delay(35);
   }
   else if( !levRL.read() )
   {
-    opentime = constrain( opentime - STEP -  STEP * (long)levRL.duration()/500, 0 , 540 );  /* acceleration, valeur de 0 à 540 */
+    opentime = constrain( opentime - STEP -  STEP * (long)levRL.duration()/500, 0 , GALV1RANGE );  /* acceleration, valeur de 0 à GALV1RANGE */
     delay(35);
-    /*
-    if( opentime == 0 )
-    {
-      LED1On;
-      delay(300);
-      LED1Off;
-      delay(500); 
-    }
-  */
   }
 
-  /*if( cancel.read() && ( cancel.duration() > 2000 ) )
-  {
-    stateGalv1 = 0;
-    stateGalv2 = 0;
-    opentime = 0;
-  }*/
 
-  stateGalv1 = map(opentime, 0, 540, 0, 255);                   /*  durée d'ouverture de 0 à 540 min <- stateGalv1(0,255)  */
+  /********************
+  * levier 2
+  *********************/
+  if( !levLR.read() )
+  {
+    galv2scale = constrain( galv2scale + STEP + STEP * (long)levLR.duration()/500, 0 , GALV2RANGE );  /* acceleration, valeur de 0 à GALV2RANGE */
+    delay(35);
+  }
+  else if( !levLL.read() )
+  {
+    galv2scale = constrain( galv2scale - STEP -  STEP * (long)levLL.duration()/500, 0 , GALV2RANGE );  /* acceleration, valeur de 0 à GALV2RANGE */
+    delay(35);
+  }
+
+
+  /********************
+  * Interrupteur
+  *********************/
+  if( cancel.read() && ( cancel.duration() > 2000 ) )
+  {
+    opentime = 0;
+    galv2scale = 0;
+  }
+
+  stateGalv1 = map(opentime, 0, GALV1RANGE, 0, 255);        /*  durée d'ouverture de 0 à 540 min <- stateGalv1(0,255)  */
+  stateGalv2 = map(galv2scale, 0, GALV2RANGE, 0, 255);      /*  durée d'ouverture de 0 à 540 min <- stateGalv1(0,255)  */
+
 
   /*  Une LED rouge clignotte lentement quand le local est fermé */
-  if( opentime == 0 && (millis()-ledtime)>5000 )
+  if( !opentime )
   {
-    LED1On;
-    delay(500);
-    LED1Off;
-    ledtime = millis();       /*  remise à zero du compteur  */
+    if( (millis()-ledtime)> ( BLINKPERIOD + BLINKOn ) )
+    {
+      LED1Off;
+      ledtime = millis();       /*  remise à zero du compteur  */
+
+    }else if( (millis()-ledtime)> BLINKPERIOD ) {
+      LED1On;
+    }
   }
 
 /****************************************************
@@ -144,13 +165,13 @@ void loop() {
  ***************************************************/
 
   /*  toute les minutes on decremente le temps */
-  if( (millis() - reftime) >= 6000 ) // FIXME : change back to 60000
+  if( (millis() - reftime) >= MINUTE )
   {
     opentime--;
     if(opentime < 0)
       opentime = 0;
     reftime = millis();
-    Serial.println("timer decrement");
+    // Serial.println("timer decrement");
   }
   
 
@@ -163,7 +184,9 @@ void loop() {
 
   /* quand plus d'une heure c'est vert */
   if( opentime > 60 )
-  { LEDGOn; }
+  { 
+    LEDGOn;
+  }
 
 /****************************************************
  *
@@ -172,7 +195,9 @@ void loop() {
  ***************************************************/
 
   Serial.print("Le local est ouvert pour : ");    /*  for the server  */
-  Serial.println( opentime );
+  Serial.print( opentime );
+  Serial.print(" et le 2e levier est a : ");
+  Serial.println( galv2scale );
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
 
