@@ -47,14 +47,14 @@ void update_buttons();
 #define BLINKPERIOD 3000
 #define BLINKOn 500
 
-#define LED1On digitalWrite(LED1, HIGH)
-#define LED1Off digitalWrite(LED1, LOW)
-#define LEDROn analogWrite(LEDG, 255) 
-#define LEDROff analogWrite(LEDG, 0) 
-#define LEDBOn analogWrite(LEDG, 255) 
-#define LEDBOff analogWrite(LEDG, 0) 
-#define LEDGOn analogWrite(LEDG, 255) 
-#define LEDGOff analogWrite(LEDG, 0) 
+#define LED1On digitalWrite(LED1, LOW)
+#define LED1Off digitalWrite(LED1, HIGH)
+#define LEDROn analogWrite(LEDG, LOW) 
+#define LEDROff analogWrite(LEDG, HIGH) 
+#define LEDBOn analogWrite(LEDG, LOW) 
+#define LEDBOff analogWrite(LEDG, HIGH) 
+#define LEDGOn analogWrite(LEDG, LOW) 
+#define LEDGOff analogWrite(LEDG, HIGH) 
 
 /* les levier et switch utilisent la librairie Bounce.h  */
 Bounce cancel = Bounce(OnOff, 20);        /* debounce 20 ms  */
@@ -178,8 +178,8 @@ void loop() {
   /*  la dernière heure on passe du vert au rouge  */
   if( opentime < 60 )
   {
-    analogWrite(LEDR, map(60 - opentime, 0, 60, 0, 255) );   /* rouge augmente */
-    analogWrite(LEDG, map(opentime, 0, 60, 0, 255) );        /*  vert diminue */
+    analogWrite(LEDR, map(60 - opentime, 0, 60, 255, 0) );   /* rouge augmente */
+    analogWrite(LEDG, map(opentime, 0, 60, 255, 0) );        /*  vert diminue */
   }
 
   /* quand plus d'une heure c'est vert */
