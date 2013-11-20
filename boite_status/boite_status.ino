@@ -21,31 +21,32 @@
 #include <Bounce.h>
 
 /* Founctions  */
-void update_buttons();
+void update_buttons();       /* debounce lib need an update every loop */
 
 /* PINOUT */
 /* Output pins are all PWM pins */
-#define GALV1 5
-#define GALV2 6
-#define LED1 9
-#define LEDR 10
-#define LEDB 13
-#define LEDG 11
+#define GALV1 5              /*  Galva 1 (gauche)  */
+#define GALV2 6              /*  Galva 2 (droite)  */
+#define LED1 9               /*  Led du haut Red */
+#define LEDR 10              /*  Led du bas Red  */
+#define LEDB 13              /*  Led du bas Blue  */
+#define LEDG 11              /*  Led du bas Green  */
 
 /* Input pins are digital pins */
-#define OnOff 2
-#define LEVRR 7
-#define LEVRL 4
-#define LEVLR 8
-#define LEVLL 12
+#define OnOff 2              /* Interupteur du millieu On/Off */
+#define LEVRR 7              /* Levier Right position Right */
+#define LEVRL 4              /* Levier Right position Left */
+#define LEVLR 8              /* Levier Left position Right */
+#define LEVLL 12             /* Levier Left position Left */
 
 /* Const */
-#define STEP 2
-#define MINUTE 60000
-#define GALV1RANGE 540
-#define GALV2RANGE 300
-#define BLINKPERIOD 3000
-#define BLINKOn 500
+#define STEP 2               /* step de l'acceleration aiguille step+step*temps)  */
+#define MINUTE 60000         /* Vitesse de descente de l'aiguille (60 secondes dans une minute)  */
+#define GALV1RANGE 540       /* Le range du galva 1 540 == 9*60 min - 9 heures */
+#define GALV2RANGE 300       /* Le range du galva 2 300 (fonction à determiner ) */
+#define BLINKPERIOD 3000     /* Frequence de cligotement du temoin rouge (local fermé) */
+#define BLINKOn 500          /* durée de clignotement du temoin */
+#define LASTHOUR 60          /* en se raprochant de 0 la LED va progressivement changer de couleur à partir de X minutes */
 
 #define LED1On digitalWrite(LED1, LOW)
 #define LED1Off digitalWrite(LED1, HIGH)
@@ -62,6 +63,7 @@ Bounce levRR = Bounce(LEVRR, 20);
 Bounce levRL = Bounce(LEVRL, 20);
 Bounce levLR = Bounce(LEVLR, 20);
 Bounce levLL = Bounce(LEVLL, 20);
+
 
 int stateGalv1 = 0;
 int stateGalv2 = 0;
@@ -175,18 +177,26 @@ void loop() {
   }
   
 
-  /*  la dernière heure on passe du vert au rouge  */
-  if( opentime < 60 )
+
+  if( opentime == 0 )               /*  la dernière heure on passe du vert au rouge  */
   {
-    analogWrite(LEDR, map(60 - opentime, 0, 60, 255, 0) );   /* rouge augmente */
-    analogWrite(LEDG, map(opentime, 0, 60, 255, 0) );        /*  vert diminue */
+
+    LEDROff;
+    LEDBOff;
+    LEDGOff;
+
+  }else if( opentime > 60 ) {       /* quand plus d'une heure c'est vert */
+
+    LEDGOn;
+
+  }else                             /*  Entre LASTHOUR et 0 on passe de Green à Red */
+ 
+    analogWrite(LEDR, map(LASTHOUR - opentime, 0, LASTHOUR, 255, 0) );   /* rouge augmente */
+    analogWrite(LEDG, map(opentime, 0, LASTHOUR, 255, 0) );        /*  vert diminue */
+
   }
 
-  /* quand plus d'une heure c'est vert */
-  if( opentime > 60 )
-  { 
-    LEDGOn;
-  }
+
 
 /****************************************************
  *
@@ -194,9 +204,9 @@ void loop() {
  *
  ***************************************************/
 
-  Serial.print("Le local est ouvert pour : ");    /*  for the server  */
+  Serial.print("Galva 1 ; ");    /*  for the server  */
   Serial.print( opentime );
-  Serial.print(" et le 2e levier est a : ");
+  Serial.print("; Gavla 2 ; ");
   Serial.println( galv2scale );
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
