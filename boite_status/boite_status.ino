@@ -29,19 +29,19 @@ void update_buttons();       /* debounce lib need an update every loop */
 #define GALV2 6              /*  Galva 2 (droite)  */
 #define LED1 9               /*  Led du haut Red */
 #define LEDR 10              /*  Led du bas Red  */
-#define LEDB 13              /*  Led du bas Blue  */
-#define LEDG 11              /*  Led du bas Green  */
+#define LEDB 11              /*  Led du bas Blue  */
+#define LEDG 13              /*  Led du bas Green  */
 
 /* Input pins are digital pins */
 #define OnOff 2              /* Interupteur du millieu On/Off */
 #define LEVRR 7              /* Levier Right position Right */
 #define LEVRL 4              /* Levier Right position Left */
-#define LEVLR 8              /* Levier Left position Right */
-#define LEVLL 12             /* Levier Left position Left */
+#define LEVLR 12              /* Levier Left position Right */
+#define LEVLL 8             /* Levier Left position Left */
 
 /* Const */
 #define STEP 2               /* step de l'acceleration aiguille step+step*temps)  */
-#define MINUTE 60000         /* Vitesse de descente de l'aiguille (60 secondes dans une minute)  */
+#define MINUTE 1000         /* Vitesse de descente de l'aiguille (60 secondes dans une minute)  */
 #define GALV1RANGE 540       /* Le range du galva 1 540 == 9*60 min - 9 heures */
 #define GALV2RANGE 300       /* Le range du galva 2 300 (fonction à determiner ) */
 #define BLINKPERIOD 3000     /* Frequence de cligotement du temoin rouge (local fermé) */
@@ -158,6 +158,8 @@ void loop() {
     }else if( (millis()-ledtime)> BLINKPERIOD ) {
       LED1On;
     }
+  }else{
+      LED1Off;
   }
 
 /****************************************************
@@ -187,12 +189,15 @@ void loop() {
 
   }else if( opentime > 60 ) {       /* quand plus d'une heure c'est vert */
 
+    LEDROff;
+    LEDBOff;
     LEDGOn;
 
-  }else                             /*  Entre LASTHOUR et 0 on passe de Green à Red */
+  }else {                            /*  Entre LASTHOUR et 0 on passe de Green à Red */
  
     analogWrite(LEDR, map(LASTHOUR - opentime, 0, LASTHOUR, 255, 0) );   /* rouge augmente */
     analogWrite(LEDG, map(opentime, 0, LASTHOUR, 255, 0) );        /*  vert diminue */
+    LEDBOff;
 
   }
 
@@ -208,6 +213,11 @@ void loop() {
   Serial.print( opentime );
   Serial.print("; Gavla 2 ; ");
   Serial.println( galv2scale );
+//  Serial.print( analogRead(10) );
+//  Serial.print("  ");
+//  Serial.print( analogRead(11) );
+//  Serial.print("  ");
+//  Serial.println( analogRead(13) );
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
 
