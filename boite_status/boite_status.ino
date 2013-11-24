@@ -29,15 +29,15 @@ void update_buttons();       /* debounce lib need an update every loop */
 #define GALV2 6              /*  Galva 2 (droite)  */
 #define LED1 9               /*  Led du haut Red */
 #define LEDR 10              /*  Led du bas Red  */
-#define LEDB 11              /*  Led du bas Blue  */
-#define LEDG 13              /*  Led du bas Green  */
+#define LEDB 13              /*  Led du bas Blue  */
+#define LEDG 11              /*  Led du bas Green  */
 
 /* Input pins are digital pins */
 #define OnOff 2              /* Interupteur du millieu On/Off */
 #define LEVRR 7              /* Levier Right position Right */
 #define LEVRL 4              /* Levier Right position Left */
-#define LEVLR 12              /* Levier Left position Right */
-#define LEVLL 8             /* Levier Left position Left */
+#define LEVLR 8              /* Levier Left position Right */
+#define LEVLL 12             /* Levier Left position Left */
 
 /* Const */
 #define STEP 2               /* step de l'acceleration aiguille step+step*temps)  */
@@ -50,12 +50,12 @@ void update_buttons();       /* debounce lib need an update every loop */
 
 #define LED1On digitalWrite(LED1, LOW)
 #define LED1Off digitalWrite(LED1, HIGH)
-#define LEDROn analogWrite(LEDR, 0) 
-#define LEDROff analogWrite(LEDR, 255) 
-#define LEDBOn analogWrite(LEDB, 0) 
-#define LEDBOff analogWrite(LEDB, 255) 
-#define LEDGOn analogWrite(LEDG, 0) 
-#define LEDGOff analogWrite(LEDG, 255) 
+#define LEDROn analogWrite(LEDG, LOW) 
+#define LEDROff analogWrite(LEDG, HIGH) 
+#define LEDBOn analogWrite(LEDG, LOW) 
+#define LEDBOff analogWrite(LEDG, HIGH) 
+#define LEDGOn analogWrite(LEDG, LOW) 
+#define LEDGOff analogWrite(LEDG, HIGH) 
 
 /* les levier et switch utilisent la librairie Bounce.h  */
 Bounce cancel = Bounce(OnOff, 20);        /* debounce 20 ms  */
@@ -90,23 +90,17 @@ void setup() {
   pinMode(LED1, OUTPUT);      /* LED sous la coupole rouge (elle est blanche) */
   LED1Off;
   pinMode(LEDR, OUTPUT);      /* LED rouge sous la coupole blanche */
-  //Serial.print("LED Rouge : ");
-  //Serial.println(digitalRead(LEDR));
   LEDROff;
   pinMode(LEDB, OUTPUT);      /* LED bleue sous la coupole blanche */
-  //Serial.print("LED Bleu : ");
-  //Serial.println(digitalRead(LEDB));
   LEDBOff;
   pinMode(LEDG, OUTPUT);      /* LED verte sous la coupole blanche */
-  //Serial.print("LED Verte : ");
-  //Serial.println(digitalRead(LEDG));
   LEDGOff;
 
 }
 
 
 void loop() {
-  
+ 
   update_buttons();
   
   /********************
@@ -164,8 +158,6 @@ void loop() {
     }else if( (millis()-ledtime)> BLINKPERIOD ) {
       LED1On;
     }
-  }else{
-      LED1Off;
   }
 
 /****************************************************
@@ -195,15 +187,12 @@ void loop() {
 
   }else if( opentime > 60 ) {       /* quand plus d'une heure c'est vert */
 
-    LEDROff;
-    LEDBOff;
     LEDGOn;
 
-  }else {                            /*  Entre LASTHOUR et 0 on passe de Green à Red */
+  }else                             /*  Entre LASTHOUR et 0 on passe de Green à Red */
  
-    analogWrite(LEDR, map(opentime, 0, LASTHOUR, 0, 255) );   /* rouge augmente */
-    analogWrite(LEDG, map(opentime, 0, LASTHOUR, 180, 0) );        /*  vert diminue */
-    LEDBOff;
+    analogWrite(LEDR, map(LASTHOUR - opentime, 0, LASTHOUR, 255, 0) );   /* rouge augmente */
+    analogWrite(LEDG, map(opentime, 0, LASTHOUR, 255, 0) );        /*  vert diminue */
 
   }
 
@@ -219,7 +208,6 @@ void loop() {
   Serial.print( opentime );
   Serial.print("; Gavla 2 ; ");
   Serial.println( galv2scale );
-
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
 
