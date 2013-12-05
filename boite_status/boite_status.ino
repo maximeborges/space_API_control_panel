@@ -178,6 +178,15 @@ void loop() {
   if( (millis() - reftime) >= MINUTE )
   {
     opentime--;
+
+    /**********************************
+     * Output for the server
+     **********************************/
+    Serial.print("Galva 1 ; ");    /*  for the server  */
+    Serial.print( opentime );
+    Serial.print("; Gavla 2 ; ");
+    Serial.println( galv2scale );
+
     if(opentime < 0)
       opentime = 0;
     reftime = millis();
@@ -207,23 +216,15 @@ void loop() {
 
   }
 
-
-
-/****************************************************
- *
- * Affichage pour server et galva
- *
- ***************************************************/
-
-  Serial.print("Galva 1 ; ");    /*  for the server  */
-  Serial.print( opentime );
-  Serial.print("; Gavla 2 ; ");
-  Serial.println( galv2scale );
-
+/****************************
+ * Write state to the galva
+ ****************************/
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
 
 }
+
+
 
 void update_buttons() {
 
