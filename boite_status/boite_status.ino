@@ -69,6 +69,7 @@ int stateGalv1 = 0;
 int stateGalv2 = 0;
 
 long opentime = 0;
+long old_opentime = 0;
 long galv2scale = 0;
 
 unsigned long reftime = 0;
@@ -179,6 +180,16 @@ void loop() {
   {
     opentime--;
 
+    if(opentime < 0)
+      opentime = 0;
+    reftime = millis();
+    // Serial.println("timer decrement");
+  }
+  
+  if( opentime != old_opentime )
+  {
+    old_opentime = opentime;
+
     /**********************************
      * Output for the server
      **********************************/
@@ -187,12 +198,7 @@ void loop() {
     Serial.print("; Gavla 2 ; ");
     Serial.println( galv2scale );
 
-    if(opentime < 0)
-      opentime = 0;
-    reftime = millis();
-    // Serial.println("timer decrement");
   }
-  
 
 
   if( opentime == 0 )               /*  la dernière heure on passe du vert au rouge  */
