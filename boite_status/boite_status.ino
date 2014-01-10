@@ -1,4 +1,3 @@
-
 /*
  * =====================================================================================
  *
@@ -15,6 +14,10 @@
  *        Company:  PostTenebrasLab the geneva's hackerspace   posttenebraslab.ch
  *
  * =====================================================================================
+ *   Alexandre Rosenberg - Added basic serial control (speed: 115200)
+ *   "get 1", "get 2" for galva 1 and 2 value
+ *   "set 1 x" to set galva 1 to value x, "set 2 x" for galva 2
+ *
  */
 
 #include <SPI.h>
@@ -75,19 +78,27 @@ long galv2scale = 0;
 unsigned long reftime = 0;
 unsigned long ledtime = 0;     /*  timer pour acceleration aiguille galva */
 
+String inputString = "";         // a string to hold incoming data
+boolean stringComplete = false;  // whether the string is complete
+
+//used for serial command
+int galva_no = 0;
+int new_value = 0;
 
 void setup() {
 
- // Open serial communications and wait for port to open:
+  // Open serial communications and wait for port to open:
+  // initialize serial:
   Serial.begin(115200);
-  while (!Serial); // wait for serial port to connect. Needed for Leonardo only
+  // reserve 200 bytes for the inputString:
+  inputString.reserve(200);
 
   pinMode(OnOff, INPUT);
   pinMode(LEVRR, INPUT);
   pinMode(LEVRL, INPUT);
   pinMode(LEVLR, INPUT);
   pinMode(LEVLL, INPUT);
-  
+
   pinMode(LED1, OUTPUT);      /* LED sous la coupole rouge (elle est blanche) */
   LED1Off;
   pinMode(LEDR, OUTPUT);      /* LED rouge sous la coupole blanche */
@@ -102,17 +113,16 @@ void setup() {
   //Serial.print("LED Verte : ");
   //Serial.println(digitalRead(LEDG));
   LEDGOff;
-
 }
 
 
 void loop() {
-  
+
   update_buttons();
-  
+
   /********************
-  * levier 1
-  *********************/
+   * levier 1
+   *********************/
   if( !levRR.read() )
   {
     opentime = constrain( opentime + STEP + STEP * (long)levRR.duration()/500, 0 , GALV1RANGE );  /* acceleration, valeur de 0 à GALV1RANGE */
@@ -127,8 +137,8 @@ void loop() {
 
 
   /********************
-  * levier 2
-  *********************/
+   * levier 2
+   *********************/
   if( !levLR.read() )
   {
     galv2scale = constrain( galv2scale + STEP + STEP * (long)levLR.duration()/500, 0 , GALV2RANGE );  /* acceleration, valeur de 0 à GALV2RANGE */
@@ -142,8 +152,8 @@ void loop() {
 
 
   /********************
-  * Interrupteur
-  *********************/
+   * Interrupteur
+   *********************/
   if( cancel.read() && ( cancel.duration() > 2000 ) )
   {
     opentime = 0;
@@ -162,18 +172,20 @@ void loop() {
       LED1Off;
       ledtime = millis();       /*  remise à zero du compteur  */
 
-    }else if( (millis()-ledtime)> BLINKPERIOD ) {
+    }
+    else if( (millis()-ledtime)> BLINKPERIOD ) {
       LED1On;
     }
-  }else{
-      LED1Off;
+  }
+  else{
+    LED1Off;
   }
 
-/****************************************************
- *
- * Temps 
- *
- ***************************************************/
+  /****************************************************
+   *
+   * Temps 
+   *
+   ***************************************************/
 
   /*  toute les minutes on decremente le temps */
   if( (millis() - reftime) >= MINUTE )
@@ -185,21 +197,47 @@ void loop() {
     reftime = millis();
     // Serial.println("timer decrement");
   }
-  
+
   if( opentime != old_opentime )
   {
     old_opentime = opentime;
-
-    /**********************************
-     * Output for the server
-     **********************************/
-    Serial.print("Galva 1 ; ");    /*  for the server  */
-    Serial.print( opentime );
-    Serial.print("; Gavla 2 ; ");
-    Serial.println( galv2scale );
-
   }
-
+  /**********************************
+   * Serial output for the server
+   **********************************/
+  // check string send by serial:
+  if (stringComplete) {
+    if (inputString == "get 1\n")
+    {
+      // print data  
+      Serial.println( opentime ); // Valeur galva 1
+    }
+    else if (inputString == "get 2\n")
+    {
+      Serial.println( galv2scale ); // Valeur galva 2
+    }
+    else if (inputString.startsWith("set"))
+    {
+       galva_no = getValue(inputString, ' ', 1).toInt();
+       new_value = getValue(inputString, ' ', 2).toInt();
+       
+       if (galva_no == 1)
+       {
+          opentime = new_value;
+       }
+       else if (galva_no == 2)
+       {
+          galv2scale = new_value;
+       }  
+    }
+    else
+    {
+      Serial.println("unknown command");
+    }
+    // clear the string:
+    inputString = "";
+    stringComplete = false;
+  }
 
   if( opentime == 0 )               /*  la dernière heure on passe du vert au rouge  */
   {
@@ -208,37 +246,70 @@ void loop() {
     LEDBOff;
     LEDGOff;
 
-  }else if( opentime > 60 ) {       /* quand plus d'une heure c'est vert */
+  }
+  else if( opentime > 60 ) {       /* quand plus d'une heure c'est vert */
 
     LEDROff;
     LEDBOff;
     LEDGOn;
 
-  }else {                            /*  Entre LASTHOUR et 0 on passe de Green à Red */
- 
+  }
+  else {                            /*  Entre LASTHOUR et 0 on passe de Green à Red */
+
     analogWrite(LEDR, map(opentime, 0, LASTHOUR, 0, 255) );   /* rouge augmente */
     analogWrite(LEDG, map(opentime, 0, LASTHOUR, 180, 0) );        /*  vert diminue */
     LEDBOff;
 
   }
 
-/****************************
- * Write state to the galva
- ****************************/
+  /****************************
+   * Write state to the galva
+   ****************************/
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
 
 }
 
 
-
 void update_buttons() {
-
-  /*   update debounce buttons  */ 
+  /*   update debounce buttons  */
   cancel.update();
   levRR.update();
   levRL.update();
   levLR.update();
   levLL.update();
 
+}
+
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag
+    // so the main loop can do something about it:
+    if (inChar == '\n') {
+      stringComplete = true;
+    }
+  }
+}
+
+// From http://stackoverflow.com/questions/9072320/split-string-into-string-array?utm_source=twitterfeed&utm_medium=twitter
+// This function returns a single string separated by a predefined character at a given index.
+String getValue(String data, char separator, int index)
+{
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length()-1;
+
+  for(int i=0; i<=maxIndex && found<=index; i++){
+    if(data.charAt(i)==separator || i==maxIndex){
+        found++;
+        strIndex[0] = strIndex[1]+1;
+        strIndex[1] = (i == maxIndex) ? i+1 : i;
+    }
+  }
+
+  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
