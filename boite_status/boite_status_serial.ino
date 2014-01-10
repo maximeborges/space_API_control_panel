@@ -1,4 +1,3 @@
-
 /*
  * =====================================================================================
  *
@@ -15,7 +14,7 @@
  *        Company:  PostTenebrasLab the geneva's hackerspace   posttenebraslab.ch
  *
  * =====================================================================================
- *   Alexandre Rosenberg - Added basic serial control:
+ *   Alexandre Rosenberg - Added basic serial control (speed: 115200)
  *   "get 1", "get 2" for galva 1 and 2 value
  *   "set 1 x" to set galva 1 to value x, "set 2 x" for galva 2
  *
