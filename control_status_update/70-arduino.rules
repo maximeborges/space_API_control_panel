@@ -1,0 +1,2 @@
+#AR 2013-12 Added udev rules for arduino to be read by all for Arduino door project
+SUBSYSTEM=="tty" ATTRS{manufacturer}=="Arduino*" SYMLINK+="arduino%n", MODE="0666"
