@@ -163,6 +163,18 @@ void loop() {
     ppl_count = 0;
   }
   
+  // If space is open, there should be at least one person !
+  
+  if ( ( opentime > 0 ) && ( ppl_count < 10 ) )
+  {
+    ppl_count = 10 ;
+  }
+  
+  if ( opentime == 0 )
+  {
+    ppl_count = 0 ;
+  }
+
   // AR Take into account non-linear scale. First 2 steps are (ppl / hour) 2x larger
   // Glav1 - hour counter
   if ( opentime <= 120 )
@@ -337,4 +349,3 @@ String getValue(String data, char separator, int index)
 
   return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
-
