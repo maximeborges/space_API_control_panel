@@ -90,7 +90,12 @@ while True:
   
   data = urllib.urlencode(values)
   req = urllib2.Request(url, data)
-  response = urllib2.urlopen(req)
+
+  try:
+    response = urllib2.urlopen(req)
+  except BadStatusLine:
+    print "Could not fetch %s" % url
+
   the_page = response.read()
   
   print the_page
