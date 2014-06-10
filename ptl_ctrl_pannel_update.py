@@ -93,8 +93,11 @@ while True:
 
   try:
     response = urllib2.urlopen(req)
+    the_page = response.read()
+    print the_page                                                                               
   except BadStatusLine:
     print "Could not fetch %s" % url
+
 
   the_page = response.read()
   
