@@ -27,7 +27,7 @@ SERIAL_DEV = "/dev/arduino0"
 SERIAL_RATE = 115200
 
 #Parameters for post request
-API_KEY = "Space_Invader"
+API_KEY = "privat_api_key"
 REFRESH_DELAY = 60
 
 ##########
