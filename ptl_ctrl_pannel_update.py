@@ -1,21 +1,26 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
-# AR 2014-01-10 v0.1 (beta) First version
+# AR 2014-09-10 v0.2 version
+# v0.2 added some exception handling
 # To control and receive data from control panel in PTL space
-# Arduino sketch for control panel: 
+# Arduino sketch for control panel + more: 
 # https://github.com/PostTenebrasLab/space_API_control_panel
 
 import serial
-import urllib
-import urllib2
 import time
 import sys
 
-# Verbose mode if "-v" is passed as 1st arg
-if len(sys.argv) > 1 and sys.argv[1] == "-v":
-    verbose = 1
-else:
-    verbose = 0
+import urllib
+import urllib2
+
+import logging
+
+##########
+
+#Loging
+LOG_FILE = "/var/log/ptl_ctrl_pannel_update/ptl_ctrl_pannel_update.py.log"
+DEBUG_LEVEL = logging.INFO
+# Implented debug level: logging.INFO, logging.ERROR
 
 #Serial 
 SERIAL_DEV = "/dev/arduino0"
@@ -25,38 +30,79 @@ SERIAL_RATE = 115200
 API_KEY = "Space_Invader"
 REFRESH_DELAY = 60
 
+##########
+
+logging.basicConfig(filename=LOG_FILE,level=DEBUG_LEVEL)
+logging.info("Script starting: " + (time.strftime("%a, %d %b %Y %H:%M:%S")))
+
 # Setup serial port (this will reset Arduino)
-ser = serial.Serial(SERIAL_DEV, SERIAL_RATE)
-if verbose:
-	print "Using device " + ser.name + " at " + str(SERIAL_RATE)
-ser.open()
-ser.isOpen()
+try:
+  ser = serial.Serial(SERIAL_DEV, SERIAL_RATE)
+  logging.info(("Using device " + str(ser.name) + " at " + str(SERIAL_RATE)))
+  ser.open()
+  ser.isOpen()
+except Exception as error:
+  print (error)
+  logging.error("Error when opening / initializing serial device (Arduino): ")
+  logging.error(error)
+  logging.error("Script will exit")
+  logging.error(error)
+  sys.exit(1)
 
 time.sleep(3)
 
 # Get value from control Panel left counter
 def get_value_1():
-  ser.write("get 1\n")
-  return ser.readline()
+  try:
+    ser.write("get 1\n")
+    return ser.readline()
+  except Exception as error:
+    logging.error("Error when reading value: ")
+    logging.error(error)
+  return None
 
 # Get value from control Panel left counter
 def get_value_2():
-  ser.write("get 2\n")
-  return ser.readline()
+  try:
+    ser.write("get 2\n")
+    return ser.readline()
+  except Exception as error:
+    logging.error("Error when reading value: ")
+    logging.error(error)
+  return None
 
 # Set value from control Panel left counter
 def set_value_1(i):
-  ser.write("set 1 " + str(i) + "\n")
+  try:
+    ser.write("set 1 " + str(i) + "\n")
+  except Exception as error:
+    logging.error("Error when writing value: ")
+    logging.error(error)
+  return None
 
 # Set value from control Panel right counter
 def set_value_2(i):
-  ser.write("set 2 " + str(i) + "\n")
+  try:
+    ser.write("set 2 " + str(i) + "\n")
+  except Exception as error:
+    logging.error("Error when writing value: ")
+    logging.error(error)
+  return None
 
+# Main loop
 while True:
   time.sleep(REFRESH_DELAY)
-  minute = int(get_value_1())
-  # Ppl count returns 10x the value. Need to be rounded off to closest number
-  ppl_count = int(round(int(get_value_2()) / 10.0))
+
+  value_1 = get_value_1()
+  value_2 = get_value_2()
+
+  if value_1 == None or value_2 == None:
+    logging.error("Get Value failed (returned None). Will skip update.")
+    continue
+  else:
+    minute = int(value_1)
+    ppl_count = int(round(int(get_value_2()) / 10.0))
+    # Ppl count returns 10x the value. Need to be rounded off to closest number
 
   if minute == 0:
       open_closed = "closed"
@@ -78,27 +124,26 @@ while True:
 
   status_text = txt_open_closed + " " + txt_ppl + "  " + "[Set by PTL control panel]"
 
-  if verbose:
-      print minute
-      print ppl_count
-      print status_text
+  logging.info(time.strftime("%a, %d %b %Y %H:%M:%S"))
+  logging.info("Info used for update: ")
+  logging.info("minute: " + minute)
+  logging.info("ppl_count: " + ppl_count)
+  logging.info("status_text: " + status_text)
  
   url = 'http://www.posttenebraslab.ch/api/change_status'
   values = {'api_key' : API_KEY,
             'open_closed' : open_closed,
             'status' : status_text }
   
-  data = urllib.urlencode(values)
-  req = urllib2.Request(url, data)
-
   try:
+    data = urllib.urlencode(values)
+    req = urllib2.Request(url, data)
     response = urllib2.urlopen(req)
     the_page = response.read()
-    print the_page                                                                               
-  except BadStatusLine:
-    print "Could not fetch %s" % url
+  except Exception as error:
+    logging.error("Error while doing POST request to http://www.posttenebraslab.ch/api/change_status")
+    logging.error(error)
+    continue
 
-
-  the_page = response.read()
-  
-  print the_page
+  logging.info("HTTP response page")
+  logging.info(the_page)
