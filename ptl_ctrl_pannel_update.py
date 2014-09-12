@@ -27,7 +27,8 @@ SERIAL_DEV = "/dev/arduino0"
 SERIAL_RATE = 115200
 
 #Parameters for post request
-API_KEY = "privat_api_key"
+API_KEY = "SECRET"
+URL = 'http://www.posttenebraslab.ch/status/change_status'
 REFRESH_DELAY = 60
 
 ##########
@@ -51,7 +52,7 @@ except Exception as error:
 
 time.sleep(3)
 
-# Get value from control Panel left counter
+# Get value from control Panel right counter
 def get_value_1():
   try:
     ser.write("get 1\n")
@@ -71,7 +72,7 @@ def get_value_2():
     logging.error(error)
   return None
 
-# Set value from control Panel left counter
+# Set value from control Panel right counter
 def set_value_1(i):
   try:
     ser.write("set 1 " + str(i) + "\n")
@@ -80,7 +81,7 @@ def set_value_1(i):
     logging.error(error)
   return None
 
-# Set value from control Panel right counter
+# Set value from control Panel left counter
 def set_value_2(i):
   try:
     ser.write("set 2 " + str(i) + "\n")
@@ -126,22 +127,22 @@ while True:
 
   logging.info(time.strftime("%a, %d %b %Y %H:%M:%S"))
   logging.info("Info used for update: ")
-  logging.info("minute: " + minute)
-  logging.info("ppl_count: " + ppl_count)
-  logging.info("status_text: " + status_text)
+  logging.info("minute: " + str(minute))
+  logging.info("ppl_count: " + str(ppl_count))
+  logging.info("status_text: " + str(status_text))
  
-  url = 'http://www.posttenebraslab.ch/api/change_status'
   values = {'api_key' : API_KEY,
             'open_closed' : open_closed,
             'status' : status_text }
   
   try:
     data = urllib.urlencode(values)
-    req = urllib2.Request(url, data)
+    req = urllib2.Request(URL, data)
     response = urllib2.urlopen(req)
     the_page = response.read()
   except Exception as error:
-    logging.error("Error while doing POST request to http://www.posttenebraslab.ch/api/change_status")
+    logging.error("Error while doing POST request to " + URL)
+    logging.error("values used: " + str(values))
     logging.error(error)
     continue
 
