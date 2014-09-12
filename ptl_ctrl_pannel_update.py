@@ -28,7 +28,7 @@ SERIAL_DEV = "/dev/arduino0"
 SERIAL_RATE = 115200
 
 #Parameters for post request
-API_KEY = "SeakVilgeekuconlaim1"
+API_KEY = "SECRET"
 URL = 'http://www.posttenebraslab.ch/status/change_status'
 REFRESH_DELAY = 60
 
