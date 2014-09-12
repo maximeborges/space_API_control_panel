@@ -20,14 +20,15 @@ import logging
 #Loging
 LOG_FILE = "/var/log/ptl_ctrl_pannel_update/ptl_ctrl_pannel_update.py.log"
 DEBUG_LEVEL = logging.INFO
-# Implented debug level: logging.INFO, logging.ERROR
+# Implented debug level: logging.INFO, logging.ERROR, logging.DEBUG
+# Note: Debug will print API key to log file !
 
 #Serial 
 SERIAL_DEV = "/dev/arduino0"
 SERIAL_RATE = 115200
 
 #Parameters for post request
-API_KEY = "SECRET"
+API_KEY = "SeakVilgeekuconlaim1"
 URL = 'http://www.posttenebraslab.ch/status/change_status'
 REFRESH_DELAY = 60
 
@@ -142,9 +143,10 @@ while True:
     the_page = response.read()
   except Exception as error:
     logging.error("Error while doing POST request to " + URL)
-    logging.error("values used: " + str(values))
+    logging.debug("values used: " + str(values))
     logging.error(error)
     continue
 
-  logging.info("HTTP response page")
+  logging.info("HTTP response page:")
   logging.info(the_page)
+  logging.info("End of HTTP response")
