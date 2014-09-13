@@ -35,8 +35,8 @@ REFRESH_DELAY = 60
 ##########
 
 try:
-logging.basicConfig(filename=LOG_FILE,level=DEBUG_LEVEL)
-logging.info("Script starting: " + (time.strftime("%a, %d %b %Y %H:%M:%S")))
+  logging.basicConfig(filename=LOG_FILE,level=DEBUG_LEVEL)
+  logging.info("Script starting: " + (time.strftime("%a, %d %b %Y %H:%M:%S")))
 except Exception as error:
   print (error)
   sys.exit(1)
