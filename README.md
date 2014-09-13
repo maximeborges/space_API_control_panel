@@ -29,7 +29,7 @@ A python script retrieves data (serial) from the Arduino and sends a POST reques
 
 ## Python script
 
-* Get the latest version of "ptl_ctrl_pannel_update.py" on Github.
+* Get the latest version of "ptl_ctrl_pannel_update.py" on Github (in folder python_status_updater)
 * Edit the script and change constant value
 * Install script to system ( /usr/local/bin/ptl_ctrl_pannel_update.py ) is wanted
 
