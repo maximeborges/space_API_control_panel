@@ -69,14 +69,13 @@ Also make sure to change script (log file..) as appropriate for your setup.
 
 # Check if python script is running as nobody
 if ps ux -u nobody | grep -v grep | fgrep -q 'ptl_ctrl_pannel_update.py'
-then
+then   
   exit 0
 else
 # Restart the script and append to log
   su nobody -c 'cd /tmp && nohup /usr/local/bin/ptl_ctrl_pannel_update.py &'
   su nobody -c 'echo "CRON job detected script is not running: Started at $(date)" >> "/var/log/ptl_ctrl_pannel_update/ptl_ctrl_pannel_update.py.log"'
-  echo "Detected /usr/local/bin/ptl_ctrl_pannel_update.py is not running... started"                                                                                      
-  exit 0
+  exit 0                                                                                               
 fi
 ```
 
