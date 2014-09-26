@@ -29,6 +29,7 @@
 
 /* Founctions  */
 void update_buttons();       /* debounce lib need an update every loop */
+boolean light();             /* Is it some light in space true/false */
 
 /* PINOUT */
 /* Output pins are all PWM pins */
@@ -43,8 +44,12 @@ void update_buttons();       /* debounce lib need an update every loop */
 #define OnOff 2              /* Interupteur du millieu On/Off */
 #define LEVRR 7              /* Levier Right position Right */
 #define LEVRL 4              /* Levier Right position Left */
-#define LEVLR 12              /* Levier Left position Right */
-#define LEVLL 8             /* Levier Left position Left */
+#define LEVLR 12             /* Levier Left position Right */
+#define LEVLL 8              /* Levier Left position Left */
+
+/* Analog Input pins for photoresistor */
+#define LIGHTPIN A0             /* Photoresistor
+
 
 /* Const */
 #define STEP 1               /* step de l'acceleration aiguille step+step*temps)  */
@@ -54,6 +59,7 @@ void update_buttons();       /* debounce lib need an update every loop */
 #define BLINKPERIOD 3000     /* Frequence de cligotement du temoin rouge (local fermé) */
 #define BLINKOn 500          /* durée de clignotement du temoin */
 #define LASTHOUR 60          /* en se raprochant de 0 la LED va progressivement changer de couleur à partir de X minutes */
+#define LIGHTTHRESOLD 100    /* Seuil de detection de presence (luminosite) */
 
 #define LED1On digitalWrite(LED1, LOW)
 #define LED1Off digitalWrite(LED1, HIGH)
@@ -83,6 +89,7 @@ unsigned long ledtime = 0;     /*  timer pour acceleration aiguille galva */
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
+boolean lightInSpace;
 
 //used for serial command
 int galva_no = 0;
@@ -121,6 +128,11 @@ void setup() {
 
 void loop() {
 
+  if(light()){
+    //Serial.println("Il y a de la lumiere au PTL !!! ");
+  }
+  
+  
   update_buttons();
 
   /********************
@@ -314,6 +326,18 @@ void update_buttons() {
   levLR.update();
   levLL.update();
 
+}
+
+/* Is it some light detected in space ? */
+boolean light(){
+  
+  int sensorValue = analogRead(LIGHTPIN);
+
+  if( sensorValue > LIGHTTHRESOLD )
+      return true;
+  else
+      return false;
+  
 }
 
 void serialEvent() {
