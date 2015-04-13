@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 
-# AR 2014-09-10 v0.2 version
+# AR 2015-04-13 v0.3
+# Constant SERIAL_DEV is now a tupple - allows trying to initiate with multiple dev name
+# Workaround for dev name changing from /dev/arduino0 to /dev/arduino1 (...)
+# - Changed serial initization code and loggigng
+# - Misc: HTTP response moved to logging.debug
+# - Misc: Script will exit if it can not read data
+
+# AR 2014-09-10 v0.2
 # v0.2 added some exception handling
 # To control and receive data from control panel in PTL space
 # Arduino sketch for control panel + more:
@@ -24,11 +31,11 @@ DEBUG_LEVEL = logging.INFO
 # Note: Debug will print API key to log file !
 
 # Serial
-SERIAL_DEV = "/dev/arduino0"
+SERIAL_DEV = ("/dev/arduino0", "/dev/arduino1", "/dev/arduino2", "/dev/arduino3", "/dev/arduino4")
 SERIAL_RATE = 115200
 
 # Parameters for post request
-API_KEY = "SECRET"
+API_KEY = 'SECRET'
 URL = 'http://www.posttenebraslab.ch/status/change_status'
 REFRESH_DELAY = 60
 
@@ -43,19 +50,19 @@ except Exception as error:
     sys.exit(1)
 
 # Setup serial port (this will reset Arduino)
-try:
-    ser = serial.Serial(SERIAL_DEV, SERIAL_RATE)
-    logging.info(("Using device " + str(ser.name) + " at " + str(SERIAL_RATE)))
-    ser.open()
-    ser.isOpen()
-except Exception as error:
-    print(error)
-    logging.error(
-        "Error when opening / initializing serial device (Arduino): ")
-    logging.error(error)
-    logging.error("Script will exit")
-    logging.error(error)
-    sys.exit(1)
+# Tries initiation with all device defined in tupple SERIAL_DEV
+for dev in SERIAL_DEV:
+    try:
+        logging.info(("Trying to connect to serial port " + str(dev) + " at " + str(SERIAL_RATE)))
+        ser = serial.Serial(dev, SERIAL_RATE)
+        ser.open()
+        ser.isOpen()
+        logging.info("Serial setup done")
+        break
+    except Exception as error:
+        print(error)
+        logging.error(
+            "Error when opening / initializing serial device")
 
 time.sleep(3)
 
@@ -113,7 +120,8 @@ while True:
     value_2 = get_value_2()
 
     if value_1 is None or value_2 is None:
-        logging.error("Get Value failed (returned None). Will skip update.")
+        logging.error("Get Value failed (returned None). Will exit.")
+        sys.exit(1)
         continue
     else:
         minute = int(value_1)
@@ -165,6 +173,6 @@ while True:
         logging.error(error)
         continue
 
-    logging.info("HTTP response page:")
-    logging.info(the_page)
-    logging.info("End of HTTP response")
+    logging.debug("HTTP response page:")
+    logging.debug(the_page)
+    logging.debug("End of HTTP response")
