@@ -26,7 +26,7 @@ import logging
 
 # Loging
 LOG_FILE = "/var/log/ptl_ctrl_pannel_update/ptl_ctrl_pannel_update.py.log"
-DEBUG_LEVEL = logging.INFO
+LOG_LEVEL = logging.INFO
 # Implented debug level: logging.INFO, logging.ERROR, logging.DEBUG
 # Note: Debug will print API key to log file !
 
@@ -42,7 +42,7 @@ REFRESH_DELAY = 60
 ##########
 
 try:
-    logging.basicConfig(filename=LOG_FILE, level=DEBUG_LEVEL)
+    logging.basicConfig(filename=LOG_FILE, level=LOG_LEVEL)
     logging.info("Script starting: " +
                  (time.strftime("%a, %d %b %Y %H:%M:%S")))
 except Exception as error:
@@ -67,8 +67,6 @@ for dev in SERIAL_DEV:
 time.sleep(3)
 
 # Get value from control Panel right counter
-
-
 def get_value_1():
     try:
         ser.write("get 1\n")
@@ -79,8 +77,6 @@ def get_value_1():
     return None
 
 # Get value from control Panel left counter
-
-
 def get_value_2():
     try:
         ser.write("get 2\n")
@@ -91,8 +87,6 @@ def get_value_2():
     return None
 
 # Set value from control Panel right counter
-
-
 def set_value_1(i):
     try:
         ser.write("set 1 " + str(i) + "\n")
@@ -102,8 +96,6 @@ def set_value_1(i):
     return None
 
 # Set value from control Panel left counter
-
-
 def set_value_2(i):
     try:
         ser.write("set 2 " + str(i) + "\n")
