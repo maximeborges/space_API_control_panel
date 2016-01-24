@@ -5,9 +5,9 @@
 
       Description:
 
-          Version:  3.0 (2016-01-24)
-          Created:  02/05/2014
-         Revision:  Ethernet shield version
+          Version:  3.1
+          Created:  2016/01/24
+         Revision:  Eternet shield support: Status Update + MPD music integration
          Compiler:  gcc
 
            Author:  Sebastien Chassot (sinux), seba.ptl@sinux.net
@@ -27,7 +27,6 @@
 #include <SPI.h>
 #include <Bounce.h>
 
-#include <EthernetServer.h>
 #include <Dhcp.h>
 #include <EthernetClient.h>
 #include <Dns.h>
@@ -100,23 +99,22 @@ long opentime = 0;
 long old_opentime = 0;
 long ppl_count = 0;
 
-int minute = 0;
 int ppl = 0;
 int hour = 0;
 
 unsigned long reftime = 0;
 unsigned long ledtime = 0;          /* timer pour acceleration aiguille galva  */
 
-unsigned long previousMillis = 0;   /* timer for updating the status           */
-long t_interval = 60000;            /* Update interval in milisec              */
+unsigned long previousMillis = 0;    /* timer for foced statyus update */
+long t_interval = 900000;            /* Every 15min update status (even if no change) */
 
-String inputString = "";         // a string to hold incoming data
-boolean stringComplete = false;  // whether the string is complete
 boolean lightInSpace;
 
 //used for serial command
 int galva_no = 0;
 int new_value = 0;
+
+String PostData = "";
 
 void printIPAddress()
 {
@@ -127,6 +125,111 @@ void printIPAddress()
     Serial.print(".");
   }
   Serial.println();
+}
+
+/* Is it some light detected in space ? */
+boolean updateStatus() {
+
+  String open_closed;
+  String txt_open_closed;
+  String txt_ppl;
+
+  if (opentime == 0) {
+    open_closed = "closed";
+    txt_open_closed = "The lab is closed.";
+  }
+  else if (opentime > 0 and opentime <= 60) {
+    open_closed = "open";
+    txt_open_closed = "The lab is open - remaining time is " + String(opentime) + " min.";
+  }
+  else {
+    open_closed = "open";
+    txt_open_closed = "The lab is open - planned to be open for " + String(hour) + " more hours.";
+  }
+
+  if (ppl == 0) {
+    txt_ppl = "Nobody here !";
+  }
+  else if (ppl == 1) {
+    txt_ppl = "One lonely hacker in the space.";
+  }
+  else {
+    txt_ppl = "There are " + String(ppl) + " hacker in the space.";
+  }
+
+  PostData = "api_key=SECRET&amp;status=";
+  PostData+=txt_open_closed;
+  PostData+= " ";
+  PostData+= txt_ppl; 
+  PostData+= "  [Set by PTL control panel]";
+  PostData+="&amp;open_closed=";
+  PostData+= open_closed;
+  PostData+="&amp;submit=Submit";
+
+  if (client.connect("posttenebraslab.ch", 80)) {
+    Serial.println("connected - status update");
+
+    // Make a HTTP request:
+    client.println("POST /status/change_status HTTP/1.0");
+    client.println("User-Agent: Arduino/1.0");
+    client.println("Connection: close");
+    client.print("Content-Length: ");
+    client.println(PostData.length());
+    client.println();
+    client.println(PostData);
+    Serial.println("disconnecting.");
+    client.stop();
+  }
+  else {
+    // If no connection to the server:
+    Serial.println("connection failed");
+  }
+}
+
+/* Is it some light detected in space ? */
+boolean controlMPD(String action) {
+
+  //Connect to MPD on coltello
+  if (client.connect("coltello.lan.posttenebraslab.ch", 6600)) {
+    Serial.println("connected to MPD server");
+
+    if (action == "play") {
+      Serial.println("Play music");
+      client.println("clear");
+      client.println("load restore");
+      client.println("play");
+    }
+
+    if (action == "stop") {
+      Serial.println("Stop music");
+      client.println("stop");
+
+    }
+    if (action == "last5min") {
+      Serial.println("Play last 5min playlist");
+      client.println("rm restore");
+      client.println("save restore");
+      client.println("clear");
+      client.println("load Lab_last5min");
+      client.println("setvol 100");
+      client.println("play");
+    }
+    Serial.println("disconnecting.");
+    client.stop();
+  }
+  else {
+    // If no connection to the server:
+    Serial.println("connection to MPD failed");
+  }
+}
+
+void update_buttons() {
+  /*   update debounce buttons  */
+  cancel.update();
+  levRR.update();
+  levRL.update();
+  levLR.update();
+  levLL.update();
 }
 
 void setup() {
@@ -147,9 +250,6 @@ void setup() {
   delay(1000);
   Serial.println("Configured IP using DHCP");
   printIPAddress();
-
-  // reserve 200 bytes for the inputString:
-  inputString.reserve(200);
 
   pinMode(OnOff, INPUT);
   pinMode(LEVRR, INPUT);
@@ -286,14 +386,28 @@ void loop() {
     if (opentime < 0)
       opentime = 0;
     reftime = millis();
-    // Serial.println("timer decrement");
+    // Update status
+    updateStatus();
   }
 
   if ( opentime != old_opentime )
   {
-    old_opentime = opentime;
+    // If opentime reaches 0, stop music (MPD)
+    if (opentime == 0) {
+      controlMPD("stop");
+    }
+    if (old_opentime == 0) {
+      controlMPD("play");
+    }
+    if (opentime <= 5 && old_opentime > 5) {
+      controlMPD("last5min");
+    } 
+     if (opentime > 5 && old_opentime <= 5) {
+      controlMPD("play");
+    } 
   }
-
+    old_opentime = opentime;
+  
   if ( opentime == 0 )              /*  la dernière heure on passe du vert au rouge  */
   {
     LEDROff;
@@ -321,97 +435,12 @@ void loop() {
   /****************************
      Update status
    ****************************/
-  minute = opentime;
   ppl = ppl_count / 10;
-  hour = minute / 60;
+  hour = opentime / 60;
   
   unsigned long currentMillis = millis();
   if(currentMillis - previousMillis > t_interval) {
     previousMillis = currentMillis;  
     updateStatus();
-  }
-
+    }
 }
-
-void update_buttons() {
-  /*   update debounce buttons  */
-  cancel.update();
-  levRR.update();
-  levRL.update();
-  levLR.update();
-  levLL.update();
-}
-
-/* Is it some light detected in space ? */
-boolean updateStatus() {
-
-  String open_closed;
-  String txt_open_closed;
-  String txt_ppl;
-
-  if (minute == 0) {
-    open_closed = "closed";
-    txt_open_closed = "The lab is closed.";
-  }
-  else if (minute > 0 and minute <= 60) {
-    open_closed = "open";
-    txt_open_closed = "The lab is open - remaining time is " + String(minute) + " min.";
-  }
-  else {
-    open_closed = "open";
-    txt_open_closed = "The lab is open - planned to be open for " + String(hour) + " more hours.";
-  }
-
-  if (ppl == 0) {
-    txt_ppl = "Nobody here !";
-  }
-  else if (ppl == 1) {
-    txt_ppl = "One lonely hacker in the space.";
-  }
-  else {
-    txt_ppl = "There are " + String(ppl) + " hacker in the space.";
-  }
-
-  String PostData = "api_key=SECRET=";
-  PostData+=txt_open_closed;
-  PostData+= " ";
-  PostData+= txt_ppl; 
-  PostData+= "  [Set by PTL control panel]";
-  PostData+="&amp;open_closed=";
-  PostData+= open_closed;
-  PostData+="&amp;submit=Submit";
-
-  if (client.connect("posttenebraslab.ch", 80)) {
-    Serial.println("connected to posttenebraslab.ch");
-
-    Serial.println(PostData);
-
-    // Make a HTTP request:
-    client.println("POST /status/change_status HTTP/1.0");
-    client.println("User-Agent: Arduino/1.0");
-    client.println("Connection: close");
-    client.print("Content-Length: ");
-    client.println(PostData.length());
-    client.println();
-    client.println(PostData);
-    Serial.println("disconnecting.");
-    client.stop();
-  }
-  else {
-    // If no connection to the server:
-    Serial.println("connection failed");
-  }
-}
-
-/* Is it some light detected in space ? */
-/* boolean light() {
-
-  int sensorValue = analogRead(LIGHTPIN);
-
-  if ( sensorValue > LIGHTTHRESOLD )
-    return true;
-  else
-    return false;
-
-}
-*/
