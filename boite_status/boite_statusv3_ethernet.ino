@@ -1,28 +1,28 @@
 /*
- * =====================================================================================
- *
- *       Filename:  boite_status.ino
- *
- *    Description:  
- *
- *        Version:  1.0
- *        Created:  02/05/2014
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Sebastien Chassot (sinux), seba.ptl@sinux.net
- *       Modified:  Alexandre Rosenberg
- *        Company:  PostTenebrasLab the geneva's hackerspace   posttenebraslab.ch
- *
- * =====================================================================================
- *   Alexandre Rosenberg - Added basic serial control (speed: 115200)
- *   "get 1", "get 2" for galva 1 and 2 value
- *   "set 1 x" to set galva 1 to value x, "set 2 x" for galva 2
- *
- *   Alexandre Rosenberg - tweaked value and scale to non linear
- *   to match with the printed design.
- *
- */
+   =====================================================================================
+
+         Filename:  boite_status.ino
+
+      Description:
+
+          Version:  3.0 (2016-01-24)
+          Created:  02/05/2014
+         Revision:  Ethernet shield version
+         Compiler:  gcc
+
+           Author:  Sebastien Chassot (sinux), seba.ptl@sinux.net
+         Modified:  Alexandre Rosenberg
+          Company:  PostTenebrasLab the geneva's hackerspace   posttenebraslab.ch
+
+   =====================================================================================
+     Alexandre Rosenberg - Added basic serial control (speed: 115200)
+     "get 1", "get 2" for galva 1 and 2 value
+     "set 1 x" to set galva 1 to value x, "set 2 x" for galva 2
+
+     Alexandre Rosenberg - tweaked value and scale to non linear
+     to match with the printed design.
+
+*/
 
 #include <SPI.h>
 #include <Bounce.h>
@@ -32,7 +32,6 @@
 #include <EthernetClient.h>
 #include <Dns.h>
 #include <Ethernet.h>
-#include <EthernetUdp.h>
 
 /* Ethernet Shield*/
 // MAC address of the Ethernet shield
@@ -46,6 +45,8 @@ EthernetClient client;
 /* Founctions  */
 void update_buttons();       /* debounce lib need an update every loop */
 boolean light();             /* Is it some light in space true/false */
+
+// API 
 
 /* PINOUT */
 /* Output pins are all PWM pins */
@@ -78,12 +79,12 @@ boolean light();             /* Is it some light in space true/false */
 
 #define LED1On digitalWrite(LED1, LOW)
 #define LED1Off digitalWrite(LED1, HIGH)
-#define LEDROn analogWrite(LEDR, 0) 
-#define LEDROff analogWrite(LEDR, 255) 
-#define LEDBOn analogWrite(LEDB, 0) 
-#define LEDBOff analogWrite(LEDB, 255) 
-#define LEDGOn analogWrite(LEDG, 0) 
-#define LEDGOff analogWrite(LEDG, 255) 
+#define LEDROn analogWrite(LEDR, 0)
+#define LEDROff analogWrite(LEDR, 255)
+#define LEDBOn analogWrite(LEDB, 0)
+#define LEDBOff analogWrite(LEDB, 255)
+#define LEDGOn analogWrite(LEDG, 0)
+#define LEDGOff analogWrite(LEDG, 255)
 
 /* les levier et switch utilisent la librairie Bounce.h  */
 Bounce cancel = Bounce(OnOff, 20);        /* debounce 20 ms  */
@@ -99,8 +100,15 @@ long opentime = 0;
 long old_opentime = 0;
 long ppl_count = 0;
 
+int minute = 0;
+int ppl = 0;
+int hour = 0;
+
 unsigned long reftime = 0;
-unsigned long ledtime = 0;     /*  timer pour acceleration aiguille galva */
+unsigned long ledtime = 0;          /* timer pour acceleration aiguille galva  */
+
+unsigned long previousMillis = 0;   /* timer for updating the status           */
+long t_interval = 60000;            /* Update interval in milisec              */
 
 String inputString = "";         // a string to hold incoming data
 boolean stringComplete = false;  // whether the string is complete
@@ -110,6 +118,17 @@ boolean lightInSpace;
 int galva_no = 0;
 int new_value = 0;
 
+void printIPAddress()
+{
+  Serial.print("My IP address: ");
+  for (byte thisByte = 0; thisByte < 4; thisByte++) {
+    // print the value of each byte of the IP address:
+    Serial.print(Ethernet.localIP()[thisByte], DEC);
+    Serial.print(".");
+  }
+  Serial.println();
+}
+
 void setup() {
 
   // Open serial communications and wait for port to open:
@@ -117,29 +136,18 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Started Serial");
 
-  // start the Ethernet connection:
+  // [Eth Shield] Start the Network connection
   if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP");
+    Serial.println("Failed to configure Network DHCP");
     // no point in carrying on, so do nothing forevermore:
-    while(true);
+    while (true);
   }
 
-  // give the Ethernet shield a second to initialize:
+  // [Eth Shield] Give a second to initialize:
   delay(1000);
   Serial.println("Configured IP using DHCP");
   printIPAddress();
-  
-  if (client.connect("posttenebraslab.ch", 80)) {
-    Serial.println("connected");
-    // Make a HTTP request:
-    client.println("POST /status/change_status HTTP/1.0");
-    client.println();
-  }
-  else {
-    // kf you didn't get a connection to the server:
-    Serial.println("connection failed");
-  }
-  
+
   // reserve 200 bytes for the inputString:
   inputString.reserve(200);
 
@@ -165,71 +173,62 @@ void setup() {
   LEDGOff;
 }
 
-void printIPAddress()
-{
-  Serial.print("My IP address: ");
-  for (byte thisByte = 0; thisByte < 4; thisByte++) {
-    // print the value of each byte of the IP address:
-    Serial.print(Ethernet.localIP()[thisByte], DEC);
-    Serial.print(".");
-  }
-  Serial.println();
-}
-
 
 void loop() {
 
-  if(light()){
+  /*
+  if (light()) {
     //Serial.println("Il y a de la lumiere au PTL !!! ");
   }
-    
+  */
+
   update_buttons();
 
   /********************
-   * levier 1
+     levier 1
    *********************/
-  if( !levRR.read() )
+  if ( !levRR.read() )
   {
-    opentime = constrain( opentime + STEP + STEP * (long)levRR.duration()/500, 0 , GALV1RANGE );  /* acceleration, valeur de 0 à GALV1RANGE */
+    opentime = constrain( opentime + STEP + STEP * (long)levRR.duration() / 500, 0 , GALV1RANGE ); /* acceleration, valeur de 0 à GALV1RANGE */
     reftime = millis();
     delay(35);
   }
-  else if( !levRL.read() )
+  else if ( !levRL.read() )
   {
-    opentime = constrain( opentime - STEP -  STEP * (long)levRL.duration()/500, 0 , GALV1RANGE );  /* acceleration, valeur de 0 à GALV1RANGE */
+    opentime = constrain( opentime - STEP -  STEP * (long)levRL.duration() / 500, 0 , GALV1RANGE ); /* acceleration, valeur de 0 à GALV1RANGE */
     delay(35);
   }
 
   /********************
-   * levier 2
+     levier 2
    *********************/
-  if( !levLR.read() )
+  if ( !levLR.read() )
   {
-    ppl_count = constrain( ppl_count + STEP + STEP * (long)levLR.duration()/500, 0 , GALV2RANGE );  /* acceleration, valeur de 0 à GALV2RANGE */
+    ppl_count = constrain( ppl_count + STEP + STEP * (long)levLR.duration() / 500, 0 , GALV2RANGE ); /* acceleration, valeur de 0 à GALV2RANGE */
     delay(35);
   }
-  else if( !levLL.read() )
+  else if ( !levLL.read() )
   {
-    ppl_count = constrain( ppl_count - STEP -  STEP * (long)levLL.duration()/500, 0 , GALV2RANGE );  /* acceleration, valeur de 0 à GALV2RANGE */
+    ppl_count = constrain( ppl_count - STEP -  STEP * (long)levLL.duration() / 500, 0 , GALV2RANGE ); /* acceleration, valeur de 0 à GALV2RANGE */
     delay(35);
   }
 
   /********************
-   * Interrupteur
+     Interrupteur
    *********************/
-  if( cancel.read() && ( cancel.duration() > 2000 ) )
+  if ( cancel.read() && ( cancel.duration() > 2000 ) )
   {
     opentime = 0;
     ppl_count = 0;
   }
-  
+
   // If space is open, there should be at least one person !
-  
+
   if ( ( opentime > 0 ) && ( ppl_count < 10 ) )
   {
     ppl_count = 10 ;
   }
-  
+
   if ( opentime == 0 )
   {
     ppl_count = 0 ;
@@ -241,127 +240,96 @@ void loop() {
   {
     stateGalv1 = map(opentime, 0, 120, 0, 51);        /* valeur de 0 à 120 min double (255 // 18 *2*2) = 56. (tweeked to match)  */
   }
-  
+
   if ( opentime > 120)
   {
-    stateGalv1 = map(opentime - 120, 0, GALV1RANGE, 51, 258);       
+    stateGalv1 = map(opentime - 120, 0, GALV1RANGE, 51, 258);
   }
-  
+
   // Glav1 - ppl counter
   if ( ppl_count <= 20 )
   {
     stateGalv2 = map(ppl_count, 0, 20, 0, 51);
   }
-  
+
   if ( ppl_count > 20)
   {
     stateGalv2 = map(ppl_count - 20, 0, GALV2RANGE, 51, 280);
   }
-    
+
   /*  Une LED rouge clignotte lentement quand le local est fermé */
-  if( !opentime )
+  if ( !opentime )
   {
-    if( (millis()-ledtime)> ( BLINKPERIOD + BLINKOn ) )
+    if ( (millis() - ledtime) > ( BLINKPERIOD + BLINKOn ) )
     {
       LED1Off;
       ledtime = millis();       /*  remise à zero du compteur  */
 
     }
-    else if( (millis()-ledtime)> BLINKPERIOD ) {
+    else if ( (millis() - ledtime) > BLINKPERIOD ) {
       LED1On;
     }
   }
-  else{
+  else {
     LED1Off;
   }
 
   /****************************************************
-   *
-   * Temps 
-   *
+     Temps
    ***************************************************/
 
   /*  toute les minutes on decremente le temps */
-  if( (millis() - reftime) >= MINUTE )
+  if ( (millis() - reftime) >= MINUTE )
   {
     opentime--;
 
-    if(opentime < 0)
+    if (opentime < 0)
       opentime = 0;
     reftime = millis();
     // Serial.println("timer decrement");
   }
 
-  if( opentime != old_opentime )
+  if ( opentime != old_opentime )
   {
     old_opentime = opentime;
   }
-  
-  /**********************************
-   * Serial output for the server
-   **********************************/
-  // check string send by serial:
-  if (stringComplete) {
-    if (inputString == "get 1\n")
-    {
-      // print data  
-      Serial.println( opentime ); // Valeur galva 1
-    }
-    else if (inputString == "get 2\n")
-    {
-      Serial.println( ppl_count ); // Valeur galva 2
-    }
-    else if (inputString.startsWith("set"))
-    {
-      galva_no = getValue(inputString, ' ', 1).toInt();
-      new_value = getValue(inputString, ' ', 2).toInt();
 
-      if (galva_no == 1)
-      {
-        opentime = new_value;
-      }
-      else if (galva_no == 2)
-      {
-        ppl_count = new_value;
-      }  
-    }
-    else
-    {
-      Serial.println("unknown command");
-    }
-    // clear the string:
-    inputString = "";
-    stringComplete = false;
-  }
-
-  if( opentime == 0 )               /*  la dernière heure on passe du vert au rouge  */
+  if ( opentime == 0 )              /*  la dernière heure on passe du vert au rouge  */
   {
-
     LEDROff;
     LEDBOff;
     LEDGOff;
-
   }
-  else if( opentime > 180 ) {       /* quand plus d'une heure et demi c'est vert */
-
+  else if ( opentime > 180 )      /* quand plus d'une heure et demi c'est vert */
+  {
     LEDROff;
     LEDBOff;
     LEDGOn;
-
   }
   else {                            /*  Entre LASTHOUR et 0 on passe de Green à Red */
-
     analogWrite(LEDR, map(opentime, 0, LASTHOUR, 0, 255) );   /* rouge augmente */
     analogWrite(LEDG, map(opentime, 0, LASTHOUR, 180, 0) );   /*  vert diminue */
     LEDBOff;
-
   }
 
   /****************************
-   * Write state to the galva
+     Write state to the galva
    ****************************/
   analogWrite(GALV1, stateGalv1);
   analogWrite(GALV2, stateGalv2);
+
+  /****************************
+     Update status
+   ****************************/
+  minute = opentime;
+  ppl = ppl_count / 10;
+  hour = minute / 60;
+  
+  unsigned long currentMillis = millis();
+  if(currentMillis - previousMillis > t_interval) {
+    previousMillis = currentMillis;  
+    updateStatus();
+  }
 
 }
 
@@ -372,50 +340,78 @@ void update_buttons() {
   levRL.update();
   levLR.update();
   levLL.update();
-
 }
 
 /* Is it some light detected in space ? */
-boolean light(){
-  
+boolean updateStatus() {
+
+  String open_closed;
+  String txt_open_closed;
+  String txt_ppl;
+
+  if (minute == 0) {
+    open_closed = "closed";
+    txt_open_closed = "The lab is closed.";
+  }
+  else if (minute > 0 and minute <= 60) {
+    open_closed = "open";
+    txt_open_closed = "The lab is open - remaining time is " + String(minute) + " min.";
+  }
+  else {
+    open_closed = "open";
+    txt_open_closed = "The lab is open - planned to be open for " + String(hour) + " more hours.";
+  }
+
+  if (ppl == 0) {
+    txt_ppl = "Nobody here !";
+  }
+  else if (ppl == 1) {
+    txt_ppl = "One lonely hacker in the space.";
+  }
+  else {
+    txt_ppl = "There are " + String(ppl) + " hacker in the space.";
+  }
+
+  String PostData = "api_key=SECRET=";
+  PostData+=txt_open_closed;
+  PostData+= " ";
+  PostData+= txt_ppl; 
+  PostData+= "  [Set by PTL control panel]";
+  PostData+="&amp;open_closed=";
+  PostData+= open_closed;
+  PostData+="&amp;submit=Submit";
+
+  if (client.connect("posttenebraslab.ch", 80)) {
+    Serial.println("connected to posttenebraslab.ch");
+
+    Serial.println(PostData);
+
+    // Make a HTTP request:
+    client.println("POST /status/change_status HTTP/1.0");
+    client.println("User-Agent: Arduino/1.0");
+    client.println("Connection: close");
+    client.print("Content-Length: ");
+    client.println(PostData.length());
+    client.println();
+    client.println(PostData);
+    Serial.println("disconnecting.");
+    client.stop();
+  }
+  else {
+    // If no connection to the server:
+    Serial.println("connection failed");
+  }
+}
+
+/* Is it some light detected in space ? */
+/* boolean light() {
+
   int sensorValue = analogRead(LIGHTPIN);
 
-  if( sensorValue > LIGHTTHRESOLD )
-      return true;
+  if ( sensorValue > LIGHTTHRESOLD )
+    return true;
   else
-      return false;
-  
-}
+    return false;
 
-void serialEvent() {
-  while (Serial.available()) {
-    // get the new byte:
-    char inChar = (char)Serial.read();
-    // add it to the inputString:
-    inputString += inChar;
-    // if the incoming character is a newline, set a flag
-    // so the main loop can do something about it:
-    if (inChar == '\n') {
-      stringComplete = true;
-    }
-  }
 }
-
-// From http://stackoverflow.com/questions/9072320/split-string-into-string-array?utm_source=twitterfeed&utm_medium=twitter
-// This function returns a single string separated by a predefined character at a given index.
-String getValue(String data, char separator, int index)
-{
-  int found = 0;
-  int strIndex[] = {
-    0, -1  };
-  int maxIndex = data.length()-1;
-
-  for(int i=0; i<=maxIndex && found<=index; i++){
-    if(data.charAt(i)==separator || i==maxIndex){
-      found++;
-      strIndex[0] = strIndex[1]+1;
-      strIndex[1] = (i == maxIndex) ? i+1 : i;
-    }
-  }
-  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
-}
+*/
