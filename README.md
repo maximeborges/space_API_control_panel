@@ -22,7 +22,12 @@ You can simply run
 
 And voila !
 
-# Space API control panel - python script
+# a) Space API control panel - Ethernet shield
+
+As of January 2016, Ethernet shield support has been added to the Arduino sketch. This allow the arduino to be autonomous and do HTTP request on it's own. A simple POST request is used for updating the status.
+For the server backend, see  *PTL-Status-API* project.
+
+# b) Space API control panel - python script (outdated)
 
 The PTL Control Pannel Ardiono is connected by USB to a linux computer.
 A python script retrieves data (serial) from the Arduino and sends a POST request to the PTL Status API on a remote server.
