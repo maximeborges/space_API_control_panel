@@ -5,9 +5,9 @@
 
       Description:
 
-          Version:  3.1
-          Created:  2016/01/24
-         Revision:  Eternet shield support: Status Update + MPD music integration
+          Version:  1.0
+          Created:  02/05/2014
+         Revision:  none
          Compiler:  gcc
 
            Author:  Sebastien Chassot (sinux), seba.ptl@sinux.net
@@ -166,11 +166,12 @@ boolean updateStatus() {
   PostData+= open_closed;
   PostData+="&amp;submit=Submit";
 
-  if (client.connect("posttenebraslab.ch", 80)) {
+  if (client.connect("statusapi.posttenebraslab.ch", 80)) {
     Serial.println("connected - status update");
 
     // Make a HTTP request:
     client.println("POST /status/change_status HTTP/1.0");
+    client.println("Host: statusapi.posttenebraslab.ch");
     client.println("User-Agent: Arduino/1.0");
     client.println("Connection: close");
     client.print("Content-Length: ");
