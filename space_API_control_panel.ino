@@ -25,7 +25,7 @@
 */
 
 #include <SPI.h>
-#include <Bounce.h>
+#include <Bounce2.h>
 
 #include <Dhcp.h>
 #include <EthernetClient.h>
